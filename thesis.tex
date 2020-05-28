@@ -1,10 +1,40 @@
-\documentclass[british,titlepage]{ntnuthesis}
+\documentclass[british]{ntnuthesis}
+
+\usepackage{amsmath}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows,automata}
+
+\usepackage{pgfgantt}
+
+\usepackage{pgfplots}
+\pgfplotsset{width=\hsize,compat=1.15}
 
 \title{An NTNU Thesis \LaTeX{} Document Class}
 \shorttitle{An NTNU Thesis Document Class}
 \author{Community of Practice in Computer Science Education at NTNU}
 \shortauthor{CoPCSE$@$NTNU}
 \date{CC-BY \ntnuthesisdate}
+
+
+% Custom stuff
+\newcommand{\com}[1]{{\color{red}#1}} % supervisor comment
+%\renewcommand{\com}[1]{} %remove starting % to remove supervisor comments
+% This will appear in text \com{Lecuters comment} and be visible unless you uncomment
+% the renewcommand line.
+
+\newcommand{\todo}[1]{{\color{green}#1}} % items to do
+%\renewcommand{\todo}[1]{} %remove starting % to remove items to do
+
+\newcommand{\n}[1]{{\color{blue}#1}} % other comment
+%\renewcommand{\n}[1]{} %remove starting % to remove notes
+
+
+\newcommand{\nikolai}[1]{{\color{orange}#1}} % other comment
+\newcommand{\anders}[1]{{\color{purple}#1}} % other comment
+%\renewcommand{\n}[1]{} %remove starting % to remove notes
+
+\newcommand{\dn}[1]{} % add the d to a note to say that you have finished with it.
+% END custom stuff
 
 \addbibresource{thesis.bib}
 
@@ -14,6 +44,7 @@
 
 \input{chapters/0a-abstract.tex}
 \input{chapters/0b-sammendrag.tex}
+\input{chapters/0c-acknowledgment.tex}
 
 \tableofcontents
 \listoffigures
@@ -23,17 +54,20 @@
 \printglossary[type=\acronymtype] % Print acronyms
 \printglossary                    % Print glossary
 
-\input{chapters/1-introduction}
-\input{chapters/2-usage.tex}
-\input{chapters/3-structure.tex}
-\input{chapters/4-conclusion.tex}
+\input{chapters/1-introduction.tex}
+\input{chapters/2-background.tex}
+\input{chapters/3-methodology.tex}
+\input{chapters/4-experiments.tex}
+\input{chapters/5-results.tex}
+\input{chapters/6-discussion.tex}
+\input{chapters/7-conclusion.tex}
 
 \chapter*{\bibname}
 \printbibliography[heading=none]
 
-\input{chapters/papers.tex}
+%\input{chapters/papers.tex}
 
 \appendix
-\input{appendices/a-appendix.tex}
+\input{appendices/sysmon-to-syslog.tex}
 
 \end{document}

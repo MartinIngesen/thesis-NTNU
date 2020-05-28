@@ -1,0 +1,88 @@
+\chapter{Discussion}
+\label{chap:discussion}
+This chapter provides a discussion of what implications the results of the experiments has, and presents different aspects of the work conducted.\n{rephrase}
+
+\iffalse
+Interpretations: what do the results mean?
+Implications: why do the results matter?
+Limitations: what can’t the results tell us?
+Recommendations: what practical actions or scientific studies should follow?
+\fi
+
+\section{Main results}
+
+This thesis proposed a method for improving the area of real time rule-based event correlation by..
+
+The experiments conducted in this thesis evaluated a subset of possible features that might improve the performance of real time event correlation.
+We chose to compare our solution against SEC, as that seems to be the most popular open-source software for rule-based event correlation and used in a wide variety of sectors. 
+
+First of all we implemented a new solution that used the same rulesets at SEC, but implemented in the compiled language Go. Running this using equal conditions like the same dataset, and only a single core, we were able to outperform SEC with 20-40\% using the high signal low noise dataset, and up to 89-135\% when comparing with the baseline dataset. This clearly shows the benefits of utilizing a compiled language when performance is an important criteria.
+
+We implemented a better time management system that extracts the UTC timestamp from the log, and uses that for the time-based correlation as opposed to SEC which uses the time of when SEC reads the log line from input. The difference here does not play a role processing-wise, as the timestamps in the datasets are set to a single point in time, which replicates how SEC works in our new solution. In a real world scenario this would not be the case, and we consider our solution to be a better implementation than the one used in SEC.
+
+We implemented functionality to take full advantage of the system hardware by using all cores available to use. This gave us an even bigger increase in throughput compared to both SEC and our own implementation using only a single core. We saw performance improvements of 59-80\% comparing our multi-threaded version to our single core version using the high signal low noise dataset, and improvements of 33-68\% when using the baseline dataset.
+
+Lastly we implemented some changes to our solution that would depend less on regular expressions. To do this, we did two major changes: First we rewrote parts of the ingestion to tokenize each log entry, then we rewrote the rule parser to use Sigma rules instead. The benefits of this was clear, as we saw an even bigger performance boost..\n{Add some numbers here pls}
+
+
+\iffalse
+high signal low noise
+1000 = 40.17%
+10 000 = 34.19%
+100 000 = 22.78%
+1 000 000 = 20.5%
+
+baseline
+1000 = 89.5%
+10 000 = 135.7%
+100 000 = 127%
+1 000 000 = 101.1%
+\fi
+
+\begin{itemize}
+    \item We were able to beat SEC in performance by implementing it using a compiled language and utilizing threading
+    \item We were further able to enhance the speed by utilizing tokenization of the logs and using different rules
+\end{itemize}
+
+
+\section{Research questions}
+...\\
+The research presented in this thesis aims at improving real time event correlation...
+
+
+The first question regarding the state of the art in event correlation has been addressed in Chapter \cref{chap:background} where we have highlighted relevant studies and options for doing event correlation. We highlighted several different methods for doing event correlation.
+
+One of the main drawback discovered in the research highlihted, that the various methods all lack the notion of time. This means that most of the methods assume that the events happen at a single point in time when the correlation is executed.
+
+
+\\
+\\
+The second question 
+
+% Main results
+
+% Research questions
+
+% Theoretical considerations
+
+% Practical implications
+
+
+
+\section{Limitations of the study}
+\label{sec:limitations}
+
+\section{Future work}
+\label{sec:futurework}
+
+\begin{itemize}
+    \item Modularity
+    \item Broader log support
+    \item Distributed/scaling
+\end{itemize}
+
+Distributed scaling: What could it tell us? Even more performance, harder to implement. Shared context is very tricky.
+
+\todo{What could be expanded further upon in the future?}
+\todo{Are there any experiments that we could have done, but didn't have the time to do? What could they tell us that we already didn't know?}
+Full feature-parity with Sigma? With SEC?

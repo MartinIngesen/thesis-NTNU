@@ -1,0 +1,22 @@
+\chapter{Conclusion}
+\label{chap:conclusion}
+
+\iffalse
+Minioppsummering, med fokus på konsekvenser, konkludere om du har besvart RQ.
+
+Her skal det ikke introduseres noe nytt! Trekker sammen de viktige tingene til slutt.
+
+Inneholder også future work, her kan du utdype litt, men ingenting "nytt" her.
+\fi
+The goals of this thesis was to outlined the state of the art in real time event correlation, and implemented a solution that improves the way real time event correlation can be done with regards to Windows Event log correlation. This solution builds upon existing solutions.. \n{elaborate}
+
+First of all we did a deep dive into the state of the art and considered several relevant types of event correlation. Rule-based event correlation was chosen for SEVERAL REASONS \n{add some reasons}, and relevant opponents was identified. \n{elaborate}
+
+A implementation was created that utilized the same rule-set as SEC. We implemented multi-threading which saw a great effect. \n{elaborate}
+
+A new implementation was proposed that uses different rules for correlating events. Two different methods for context management was explored as part of this. \n{elaborate}
+
+The experiments and the associated results present the event processing and correlation throughout which showed a varying level of increased performance, depending on the dataset and methods used for context management. The highest speed improvement seen was up to 135\%. \n{elaborate}
+
+In conclusion, this thesis has outlined the state of the art in real time event correlation, and implemented a solution that improves the way real time event correlation can be done with regards to Windows Event log correlation.
+Different implementations have been created and tested for performance through experiments using datasets that are both realistic, and optimized for testing performance. The experiments served as proof-of-concept that we were able to enhance and improve the event processing throughput and correctness compared to existing solutions. As a result, this thesis has made a contribution to event correlation, and more specifically for correlating Windows Event logs in near real time.

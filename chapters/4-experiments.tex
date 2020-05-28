@@ -1,0 +1,173 @@
+\chapter{Experiments}
+\label{chap:experiments}
+The following chapter introduce our improved implementation based on the methodology presented in \cref{chap:methodology}. The dataset collection and required preprocessing is presented, the software and hardware specifications.......
+
+\iffalse
+The following chapter introduces the actual implementation of the experiment based on the methodology presented in Chapter 4. The collection of the data set, the software versions, the hardware
+specifications and the used algorithms during the experiment are presented as well as the experimental design and the technical implementation. It demonstrates the technical execution of the
+methodology for reproducibility of the use case.
+\fi
+
+\section{Software Specifications}
+\label{sec:softwarespecs}
+
+\begin{itemize}
+    \item Ubuntu 18.04.4 LTS Released February 2020
+    \item go version go1.13.3 linux/amd64, released October 2019
+    \item Perl v5.30.2 built for x86\_64-linux, march 2020
+\end{itemize}
+
+\section{Hardware Specifications}
+\label{sec:hardwarespecs}
+The host system used for running the experiments feature a Intel(R) Core(TM) i7-7600U CPU @ 2.80GHz processor and 24 GB memory. The processor features two physical cores, and is capable of running two threads per core. This means that the processor has a maximum of 4 logical cores.
+
+\section{Dataset}
+
+\section{Dataset preprocessing}
+\label{sec:datasetprocessing}
+
+The Mordor-dataset require us to do some pre-processing to ingest it into Simple Event Correlator. Since our own solution is supposed to mirror SEC, 
+SEC is created to work with logs that contain one event per line in syslog format. We converted the Mordor APT3 datasets by extracting the hostname and the raw Windows Event message. Elaborate on that. The script used can be found in \cref{appendix:sysmon-to-syslog-python-script}.
+
+\iffalse
+cat empire_apt3_2019-05-14223117.json | grep -i "Microsoft-Windows-Sysmon" | jq -c '. | {message: .message, hostname: .winlog.computer_name }' > ~/master-files/eventlogs/mordor/sysmon-empire.json
+
+\fi
+
+\section{Implementation that uses Simple Event Correlators own rule format (regex based)}
+\todo{Why did we choose Go?}
+
+\subsection{Implementation}
+As discussed in chapter X, the programming language Go was chosen for implementing our new program to analyze our datasets. I have chosen to only implement the SingleWithTreshold type, and the RegExp pattern type (ptype). The "SingleWithTreshold" type triggers an action if there are X number of matches within Y time. We consider this to be the most usable rule type for our purpose. \com{What is the purpose?} For the pattern type, we choose to use "RegExp", which are Perl regular expressions. We consider this to be the best option for matching against syslog-based log lines.
+
+Other than the fact that Go is a compiled language and Perl is a interpreted language, the main additions in our implementation is that our version:
+\begin{itemize}
+    \item Uses Go channels for re-injecting events into the context engine.
+    \item The use of channels and goroutines gives us the ability to run in a threaded matter, utilizing multiple cores.
+\end{itemize}
+
+\subsubsection{Workers}
+\todo{What are workers?}
+
+\section{Implemented a new rule format}
+This format relies less on the extensive use of Regexes \com{Hvorfor er dette en fordel? Hvorfor er dette valget smart? Beskriv dette i experiment delen?}, as we saw in the rules used by Simple Event Correlator. \todo{Elaborate on this}
+\\
+For each log line/event we:
+
+\begin{enumerate}
+    \item Tokenize the event into a Event struct. \com{Hva er dette?... Flytt beskrivelsen opp til Experiment i stedet?}
+    \item Iterate over every rule, checking if the Event matches the detection-part of the rule.
+    \begin{itemize}
+        \item If there is a match, we run the Event through the context engine, to see if the conditions are met for the rule.
+    \end{itemize}
+\end{enumerate}
+
+When we tokenize the event, we take a single line of log/event, and split it into its key-value representation. For instance, the following event log is a single line of text:
+\begin{lstlisting}[breaklines=true]
+<14>Feb 18 02:29:49 Client02.mrtn.lab Microsoft-Windows-Sysmon[2092]: Process Create:  RuleName:   UtcTime: 2020-02-18 10:29:49.839  ProcessGuid: {dadb16ad-bc9d-5e4b-0000-0010c8fd3600}  ProcessId: 1040  Image: C:\Windows\System32\whoami.exe  FileVersion: 10.0.17763.1 (WinBuild.160101.0800)  Description: whoami - displays logged on user information  Product: Microsoft Windows Operating System  Company: Microsoft Corporation  OriginalFileName: whoami.exe  CommandLine: whoami  CurrentDirectory: C:\Users\mrtn\  User: MRTNLAB\mrtn  LogonGuid: {dadb16ad-2c2d-5e17-0000-0020fc3c1b00}  LogonId: 0x1B3CFC  TerminalSessionId: 1  IntegrityLevel: Medium  Hashes: MD5=43C2D3293AD939241DF61B3630A9D3B6,SHA256=1D5491E3C468EE4B4EF6EDFF4BBC7D06EE83180F6F0B1576763EA2EFE049493A,IMPHASH=7FF0758B766F747CE57DFAC70743FB88  ParentProcessGuid: {dadb16ad-2cf1-5e17-0000-001027122b00}  ParentProcessId: 2748  ParentImage: C:\Users\mrtn\test.exe  ParentCommandLine: .\test.exe
+\end{lstlisting}
+But after tokenization, it looks like this:
+\begin{lstlisting}[breaklines=true]
+MachineName: Client02.mrtn.lab
+ProcessType: Process Create: 
+RuleName:   
+UtcTime: 2020-02-18 10:29:49.839
+ProcessGuid: {dadb16ad-bc9d-5e4b-0000-0010c8fd3600}
+ProcessId: 1040
+Image: C:\Windows\System32\whoami.exe
+FileVersion: 10.0.17763.1 (WinBuild.160101.0800)
+Description: whoami - displays logged on user information  Product: Microsoft Windows Operating System
+Company: Microsoft Corporation 
+OriginalFileName: whoami.exe
+CommandLine: whoami
+CurrentDirectory: C:\Users\mrtn\
+User: MRTNLAB\mrtn
+LogonGuid: {dadb16ad-2c2d-5e17-0000-0020fc3c1b00}
+LogonId: 0x1B3CFC
+TerminalSessionId: 1
+IntegrityLevel: Medium
+Hashes: MD5=43C2D3293AD939241DF61B3630A9D3B6,SHA256=1D5491E3C468EE4B4EF6EDFF4BBC7D06EE83180F6F0B1576763EA2EFE049493A,IMPHASH=7FF0758B766F747CE57DFAC70743FB88
+ParentProcessGuid: {dadb16ad-2cf1-5e17-0000-001027122b00}
+ParentProcessId: 2748
+ParentImage: C:\Users\mrtn\test.exe
+ParentCommandLine: .\test.exe
+\end{lstlisting}
+The tokenized version of the event log is stored as a Go struct, which makes it simpler to query specific parts of the event log directly, instead of having to parse the whole event log every time we want to access a single key-value pair. An example would be if we wanted to access the MachineName or CommandLine values from the above example, which would be done like this:  \lstinline{event['MachineName']} and \lstinline{event['CommandLine']}.
+
+
+\subsection{Context}
+\n{What is context?}
+\\
+When we want to do correlation between two or more events based on a rule, we need to have some kind of overview of what state our rule is in. When a new event arrives that triggers our rule, we need to know if this is the first event, if there are other events that have triggered before it, and most importantly, if the previous events that triggered the rule is within the given time frame of the rule. This is what we call "context".
+
+\subsection{The Context Engine}
+One of the benefits of our new implementation is the ability to process events concurrently. But when working with a context that is accessed by several workers concurrently, data races may appear. A data race occurs when two goroutines concurrently accesses the same variable (in this case the context variable), and at least one of the goroutines writes to the variable. The danger here is that we could have two or more goroutines with their own versions of the context that are out of sync. This could lead to data loss and/or a failure to detect when a rule-condition is met. The standard way of dealing with data races like this is to use a mutex. A mutex provides a locking mechanism to ensure that only one goroutine can manipulate a variable at a time.
+
+In our implementation we have integrated a mutex in two different ways, using a shared context mutex and using a rule-based context mutex. \com{Det er ikke så interessant at vi har brukt to forskjellige, men hva oppnår vi? Hva var hensikten med dette?}
+
+\subsubsection{Shared context}
+
+For the shared context, we have a large map that looks like this:
+\begin{lstlisting}
+context := map[string]{
+    Events  []Event
+}
+\end{lstlisting}
+We access it by doing:
+\begin{lstlisting}
+c := context["CONTEXT_FOR_RULE_1"]
+\end{lstlisting}
+the variable \lstinline{c} now contain an array of \lstinline{event}s, if there are any for the given key \lstinline{CONTEXT_FOR_RULE_1}. In our implementation we use the ID of the rule for this lookup, as it is an (Universally unique identifier) UUID4-string, and is safe to use as a unique identifier.
+
+
+Since we may both read and write to the \lstinline{c} variable, we need to lock a mutex for the \lstinline{context} map. We can do this like this:
+
+\begin{lstlisting}
+context := map[string]{
+    Events  []Event
+}
+contextMutex := &sync.RWMutex{}
+
+contextMutex.Lock()
+c := context["CONTEXT_FOR_RULE_1"]
+
+// Add or remove events to the context here
+
+context["CONTEXT_FOR_RULE_1"] = c
+
+contextMutex.Unlock()
+\end{lstlisting}
+
+We now have a goroutine-safe way of accessing and editing our context. The drawback of this is in the design, when multiple goroutines try to access the context, they will have to wait for their turn to lock on the context.
+
+\subsubsection{Rule-based context}
+For the rule-based context, both the context and the context mutex is defined in the rule struct itself:
+\begin{lstlisting}
+type context struct {
+    events []event
+}
+
+type Rule struct {
+	Context        context
+	ContextMutex   sync.RWMutex
+	Title          string
+	ID             string
+	...
+}
+\end{lstlisting}
+Accessing and modifying the rule context is pretty similar to the shared context mutex, but instead of the shared context, we are accessing \lstinline{rule} instead:
+\begin{lstlisting}
+rule.ContextMutex.Lock()
+c := rule.Context
+
+// Add or remove events to the context here
+
+rule.Context = c
+
+rule.ContextMutex.Unlock()
+\end{lstlisting}
+
+
+The benefit to doing it this way is clear. If several goroutines are accessing the context at the same time, but are interested in different rules, we will lock on the individual rule mutex instead of a single shared mutex.
+
+There may still be cases when multiple goroutines try to lock on the same rule and have to wait in line. So depending on the number of rules and how often the rules are triggered we may see performance equal to the shared context as a worst case scenario.

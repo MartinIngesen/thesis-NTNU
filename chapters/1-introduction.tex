@@ -1,7 +1,72 @@
 \chapter{Introduction}
+\label{chap:introduction}
+%Why do we need to monitor?
+New vulnerabilities and attack vectors are discovered every day, and there is an increase in the development of new malware as shown in \citetitle{av_test_security_report_1819} by \textcite{av_test_security_report_1819}. The report \citetitle{m-trends_2020} by \textcite{m-trends_2020} underlines the fact cyber attacks can critically impact and cripple businesses that are targeted. Many of these cyber threats focus on penetrating the network of a business to steal valuable information, hold data as ransom or permanently destroy the business network. The cost of a cyber attack can be high, and is not only measured in lost data or equipment, but also the business reputation and client-base. This is why it is important to identify such attacks as soon as possible.
 
-Over the years, several thesis templates for \LaTeX{} have been developed by different groups at NTNU. Typically, there have been local templates for given study programmes, or different templates for the different study levels – bachelor, master, and \acrshort{phd}.\footnote{see, e.g., \url{https://github.com/COPCSE-NTNU/bachelor-thesis-NTNU} and \url{https://github.com/COPCSE-NTNU/master-theses-NTNU}}
+%What has traditionally been the way we monitor?
+Traditionally, \acrfull{nsm} has been essential to avert these cyber threats and attacks. 
+\acrshort{nsm} is the collection, analysis, and escalation of indications and warnings to detect and respond to intrusions in the network. The goal is to detect and respond to threats as early as possible to prevent unauthorized access, misuse, destruction or data theft.
 
-Based on this experience, the \acrfull{CoPCSE}\footnote{\url{https://www.ntnu.no/wiki/display/copcse/Community+of+Practice+in+Computer+Science+Education+Home}} is hereby offering a template that should in principle be applicable for theses at all study levels. It is closely based on the standard \LaTeX{} \texttt{report} document class as well as previous thesis templates. Since the central regulations for thesis design have been relaxed – at least for some of the historical university colleges now part of NTNU – the template has been simlified and put closer to the default \LaTeX{} look and feel.
+%What methods are commonly used in monitoring?
+The most common way to do network security monitoring, is to use solutions known as \acrfull{ids} or \acrfull{ips} as described by \textcite{liu_2019}. These systems are used to detect, alert and possibly prevent security incidents from occurring by monitoring the network traffic that flows to and from the computers in the business network, and out to the internet. The main benefits of using these network-based solutions, is that there is no need to alter the existing infrastructure or install any software on the hosts in the network. The solutions monitor everything on the network segment they are placed in, regardless of the operating systems (OS) running on the hosts. An additional factor has been the fact that these solutions have a lower cost of setup and maintenance than host-based solutions that require installing or configuring software on the hosts themselves.
 
-The purpose of the present document is threefold. It should serve (i) as a description of the document class, (ii) as an example of how to use it, and (iii) as a thesis template.
+%What are the weaknesses with these methods?
+But as businesses are moving to become more and more digital, and the workforce is getting accustomed to working from anywhere, be it from home, from the coffee shop or even from the beach, the business network-perimeter is slowly being eroded away.
+As of writing this, the COVID-19 virus is spreading across the globe, and employees all around the world are forced to stay at home to reduce the risk of spreading the disease. This global pandemic is forcing those businesses who have not already adapted to a remote workforce, to introduce work-from-home quickly as described by \textcite{kramer_2020}.
+In addition to the work-from-home factor, we are also seeing a rise in encrypted traffic, both between hosts, but also out to the wider internet. Privacy-enhancing technologies like DNS-over-TLS/DNS-over-HTTPS, free TLS certificates and browsers marking unencrypted websites as "unsafe" are pushing the bar on moving to a fully-encrypted internet. Unless the business chooses to utilize TLS interception to "see" the encrypted traffic inline using their traditional network security monitoring solutions, they are increasingly becoming blind to the threats that might hide behind encrypted communications. There is also no visibility into what is actually happening on the hosts in the network, unless there is data transmitted across the network that can be analyzed. All of these factors contribute to a reduced value in network-based security monitoring.
+
+%What is the solution to this?
+The industry solution to this has been to shift focus away from network-based monitoring and detection, and shift the focus towards the endpoints in the network as said by \textcite{liu_2019}. The different solutions for endpoint protection have historically been hard to install, configure and maintain on the individual hosts in a business, and the alerts produced by the anti-virus or host monitoring software has to be transmitted and stored in a central location, as discussed in the work done by \textcite{brattstrom_2017}. In addition, performance degradation on the hosts caused by the resource-intensive software required for detection, prevention and transmitting alerts has been of concern.
+
+First of all we have \acrfull{hids} which monitor the dynamic state of the host, and alerts on system changes that are out-of-place. This is usually based on a database containing the cryptographic hash of known-good files. The \acrshort{hids} then monitor the files for any changes, and report any changes to a central location.
+
+Then we have the common anti-virus/anti-malware/endpoint protection software. These software solutions usually contain a range of different detection and prevention methods, and usually incorporates a variety of signature-based, heuristic-based, data mining and machine learning detection. Commercial-grade \acrfull{av} usually reports their findings to a central location for analysis. For anti-virus to protect its integrity and detect malice it has to run with high privileges on the host. Any vulnerabilities in the \acrshort{av} engine can then have fatal consequences allowing for instance privilege escalation on the host. There has been concerns regarding system instability caused by bugs in the \acrshort{av} engine or slow network connections caused by the \acrshort{av} doing network inspection. These faults are usually patched or corrected quickly by the vendor, but might still be of concern to the system administrators.
+
+Lastly, we have event forwarding, which is software that sends the events generated by the OS to a central location for detection, analysis and forensic purposes. Storing all the logs, not just alerts like anti-virus and HIDS might do, in a central location has the added benefit of being able to be searched in after-the-fact. This makes event forwarding very valuable for forensic purposes and for developing new detections based on historical data.
+Event forwarding requires knowledge of what logs to forward and what to filter out. The number of events that are generated per second can vary, and being able to estimate the amount of logs are important so that the central log collection can be scaled appropriately to accommodate the volume of logs that are being ingested and stored.
+In recent years, the technology both for configuring and maintaining software on the hosts and systems for ingesting host data to a central location has done great leaps. Vendors of security products have made their software simpler to configure, usually via a cloud-based console. Storage is in general cheaper, and \acrfull{siem} software has made it simpler to monitor and analyze large volumes of event and log data.
+
+\phantomsection
+\section{Problem description}
+\label{sec:problemdescription}
+Even though new technology has made it easier to collect and store huge amounts of events, the problem still persist on how to analyze and alert on those events in real time when collected centrally.
+A problem that occurs when companies are collecting more and more logs, is that actively hunting and alerting on badness in those logs are becoming harder and more complex. A single log item from a single source is not enough to properly analyze what has happened in a system. Only by cross-correlating several log lines and log sources are we able fully understand the situation at hand and create detection that are of high quality.
+
+While modern \acrshort{siem} software like \textcite{Splunk}, \textcite{QRadar} and \textcite{NetWitness} support searching, analyzing and alerting in various degrees, quality \acrshort{siem}s are usually heavyweight, expensive, licensed by how many gigabytes are ingested per day. The alert rules can be hard to create, manage and share between analysts, and probably the most significant factor is that the alerts are only generated after the log data has been indexed. This adds unnecessary latency when we optimally want near real-time alerting. Traditionally in a \acrshort{siem}, logs are analyzed after-the-fact by an analyst. This is a major drawback, as this type of security monitoring is reactive and error-prone.
+
+When considering free or open-source solutions like \textcite{OSSIM}, \textcite{OSSEC} and \textcite{SEC-website} to correlate event logs in real-time, they are often lacking in terms of performance and ease-of-use.
+In addition, when considering distributed company environments, the hosts are not always able to send their event logs at the same time. There will be delays based on the geographical location of the host, network latency or network connectivity issues. Events may be ingested in the "wrong" (non-sequential) order, or asynchronous with other hosts.
+
+\section{Justification, motivation and benefits}
+\label{sec:motivation}
+Today, event log correlation is usually done centrally using built-in functionality in a \acrshort{siem}, or using specialized software that processes and correlates events before they are ingested into a central storage system.
+As the volume of ingested events increase, there is a big demand for solutions that are able to correlate large amounts of event log in near real time, while also addressing correlation-problems with regard to data latency, asynchronous events and time drift.
+
+Each host generate a huge amount of events that can be available to us for analysis and correlation, and can give deep insight into what is happening on each system. While we have this goldmine of host event data, we can not simply apply signature-based alerting like we commonly see in anti-virus products. The reason for this is that it is much harder to tell if a single event contains malice. A event might for example contain the information that a specific user deleted a file. This could be malicious, or it could be benign. The context around that event decides if it is malicious activity or not. That level of context-awareness is impossible to get with regular signatures, and is why event correlation can be so powerful, but tricky.
+Another benefit of centrally analyzing event data from multiple hosts is the cross-host correlation that can be done. It makes it possible to create correlations that identify host-to-host interactions, lateral movement and attacker behaviour across the whole network, which previously only was possible with network-based monitoring. In the Microsoft Windows operating systems, those logs are known as Windows Event Logs.
+
+We believe that the specialized software can be further enhanced to improve the performance of real time event correlation. In this thesis we contribute an improved method for correlating Windows Event logs in near real-time, while at the same time taking care to address the problems with might occur with log ingestion delays and asynchronous events.
+
+\section{Research questions}
+\label{sec:researchquestions}
+To address the problems outlined in \ref{sec:problemdescription}, the following research questions have been developed:\\
+\textbf{Hypothesis:} We believe that we are able to improve upon current research and methods for real time event correlation, by utilizing a compiled, multi-threaded programming language and better rule formats.\\
+\textbf{Research questions:}
+\begin{enumerate}
+    \item What is the state of the art for real time event correlation?
+    \item How can we improve the way real time event correlation is done for Windows Event Logs? %How can multi-threaded programming language and netter rule formats improve how real time event...
+    \item What is the performance of our proposed method, and how does it compare to other methods?
+\end{enumerate}
+
+\section{Planned contributions}
+\label{sec:plannedcontributions}
+
+The primary contribution of this project is an improved method for correlating Windows Event Logs in time, in near real time. The goal of this thesis is to explore ways to improve real time log correlation both performance-wise but also addressing the problems that occur when analyzing asynchronous events or when experiencing log ingestion delays.
+
+\section{Thesis outline}
+\label{sec:thesisoutline}
+This section presents an overview of the thesis and a short summary of each chapter.\\\\
+\textit{Chapter X: A}\\
+\n{This is some text}\\\\
+\textit{Chapter Y: A}\\
+\n{This is some text}
