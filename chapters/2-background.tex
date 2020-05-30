@@ -7,21 +7,71 @@ Furthermore we will take a look at various types of signatures and rules that ca
 Finally we will take a look at \acrfull{sec}, as that is the rule-based event correlator that we will try to outperform.
 
 \section{Event logs}
+\label{sec:event-logs}
 %What are event logs?
 %What is an event?
 %Examples
+In general terms, a event is \textit{something} that happened at a point in time. It could be anything, like a bank transaction, a user logging in to a system, the fire alarm being pulled, that your food delivery has arrived, and so forth.
+In regards to computers, events are something that happens on the individual computer systems. There can be events for a broad range of use cases like events related to system components, such as drivers and built-in interface elements, events related to programs installed on the system or events related to security, such as logon attempts and resource access.
+
+The original reason why these logs are kept is such that system administrators can use them to debug software or configuration issues. In recent years, security professionals have started reviewing and using these logs as a mean to analyze and detect what has happened on a system. The event logs can give the people doing digital forensics valuable insight into a machine compromise, or help detect malicious activity as it is happening. Historically, the event logs has purely been used as a reactive log source, and only with recent shifts has been getting more focus as explained by \textcite{He_2017}.
+
+The amount of events that are logged on a machine varies greatly depending on how it is configured and what the software installed on the system choose to log. Depending on the system, event logs might have to be manually enabled or configured to provide the valuable insight into the events of the system.
+In addition, there is no standardized way that logs are created. While there exist various attempts at creating a standard like Common Event Format (CEF)\cite{CEF}, Log Event Extended Format (LEEF)\cite{LEEF}, Common Information Model (CIM)\cite{CIM} and Intrusion Detection Message Exchange Format (IDMEF)\cite{IDMEF}, none of them have caught on. As outlined by \textcite{He_2018} in the paper \citetitle{He_2018}, logs are generally unstructured, and analysing the logs relies on labor-intensive and error-prone manual inspection.
+
+Automated log analysis and log mining has been discussed in various ways before (\textcite{xu_2009}, \textcite{fu_2009}, \textcite{he_2016}, \textcite{Beschastnikh_2011}, \textcite{Shang_2013}, \textcite{Yuan_2012}, \textcite{Nagaraj_2012}, \textcite{Oprea_2015}, and \textcite{Gu_2015}) and will not be further covered here. Our focus for this thesis will be on Windows Event logs, and we will elaborate on that in \cref{sub:windows-event-logs}. Support for other log formats is considered future work.
 
 
-\subsection{Windows Event Log}
+\subsection{Windows Event Logs}
+\label{sub:windows-event-logs}
 
-Windows Event Log is a built-in capability in the Microsoft Windows operating systems. The different event log categories can be configured using Group Policy Objects in an enterprise. The total amount of logs generated on a system is huge, so configuration is necessary to remove noisy or uninteresting events.
-There are events for "everything". \todo{Find some examples here}
-Windows Event Logs are usually sent to a centralized location for storage and analysis, either using the built-in option called Windows Event Log Forwarding or using custom agents like Splunk Universal Forwarder, winlogbeat or nxlog to name a few.
+Windows Event Log is a built-in capability of the Microsoft Windows operating systems.
+
+According to \textcite{UltimateWindowsSecurity}, there are more than 400 different types of events that can be logged. Some of these event types have to explicitly be enabled, and some are enabled by default. As an example, if we want Windows to log events for when a network share object was accessed/added/modified/deleted, we have to enable that using \acrfull{gpo}. The path for doing so can be found using the Group Policy Management Console and by navigating to "Computer Configuration -> Policies -> Windows Settings -> Security Settings -> Advanced Audit Policy Configuration -> Audit Policies -> Object Access -> Audit File Share" as seen in \cref{fig:audit-file-share}.
+
+\begin{figure}[htbp]  % order of priority: h here, t top, b bottom, p page
+  \centering
+  \includegraphics[width=\textwidth]{figures/audit-file-share.png}
+  \caption[Screenshot of Local Group Policy Editor]{Screenshot of Local Group Policy Editor enabling file share auditing}
+  \label{fig:audit-file-share}
+\end{figure}
+
+Since the events are so verbose and plentiful, they can also overlap quite a lot. For instance when a new account is created, the event "4720: A user account was created" is created, as well as the events "4722: A user account was enabled.", "4724: An attempt was made to reset an account's password" and "4738: A user account was changed". This is shown in \cref{fig:create-user-events}.
+
+\begin{figure}[htbp]  % order of priority: h here, t top, b bottom, p page
+  \centering
+  \includegraphics[width=\textwidth]{figures/create-user-events.png}
+  \caption[Screenshot of events related to user creation]{Screenshot of events related to user creation}
+  \label{fig:create-user-events}
+\end{figure}
+
+In enterprise networks that utilize Active Directory for managing multiple hosts, these type of \acrshort{gpo} settings can be configured centrally and applied to relevant machines. The above-mentioned file share events would for instance be interesting to enable for file servers, but not for other servers or client machines. If the enterprise uses some sort of central log collection, it is therefore necessary to configure and tune which events are saved, as that will affect how many events are sent over the wire and stored centrally.
+
+When it comes to forwarding events and storing them, Windows Event logs are not stored in plain text on the system, but in a proprietary binary format as explained by \textcite{Schuster_2007}. To access the events programmatically, one have to go through the Windows Event Log \acrfull{api}\cite{Windows_event_log_api}. From the \acrshort{api} it is possible to access the raw \acrshort{xml} of the events. It is also possible to view the events in the built-in Event Viewer as seen in \cref{fig:event-viewer}. This is a program that allows for searching, filtering and viewing events. Each event contains a lot of information, and it is possible to view more details about each event as seen in \cref{fig:event-properties}.
+
+\begin{figure}[htbp]  % order of priority: h here, t top, b bottom, p page
+  \centering
+  \includegraphics[width=\textwidth]{figures/event-viewer.png}
+  \caption[Screenshot of Event Viewer]{Screenshot of Event Viewer}
+  \label{fig:event-viewer}
+\end{figure}
+
+\begin{figure}[htbp]  % order of priority: h here, t top, b bottom, p page
+  \centering
+  \includegraphics[width=\textwidth]{figures/event-properties.png}
+  \caption[Screenshot of Event Properties]{Screenshot of Event Properties}
+  \label{fig:event-properties}
+\end{figure}
+
+In enterprises, Windows Event Logs are usually sent to a centralized location for storage and analysis, either using the built-in option called Windows Event Forwarding\cite{windows_event_forwarding_docs} or using custom agents like Splunk Universal Forwarder\cite{Splunk_monitor_windows_event_log_data}, \textcite{Winlogbeat} or \textcite{nxlog_collecting_event_log_data} to name a few.
 
 \subsubsection{Sysmon}
-Sysmon is an extension to the stock Windows Event Log and allows for a more powerful customization of what events go into the event log. Using a kernel driver, Sysmon is able to add support for a wider variety of interesting events. The table \ref{tab:sysmoneventtypes} is a list of each event type that Sysmon can generate.
+\acrfull{sysmon}\cite{Sysmon} is an extension to the stock Windows Event Logs that allows for a more powerful customization of what events go into the event log. Using a kernel driver, Sysmon is able to add support for a wider variety of interesting events. The table \ref{tab:sysmoneventtypes} is a list of each event type that Sysmon can generate.
+Sysmon events do not replace those of regular Windows events, but creates events that contain detailed information about process creations, network connections, and changes to file creation time which can be used to help identify malicious or anomalous activity and understand how intruders and malware operate on your network.
 
-\begin{table}[ht]
+For our experiments in this thesis, we will focus our attention towards the \acrshort{sysmon} process creation event (event ID 1). This event contains all the information necessary to detect which processes ran on a system, what its parent process was, what the command line arguments passed to the process was, and so forth.
+
+\begin{table}[htbp]
 \begin{tabular}{l|l}
 ID & Description \\ \hline
 1 & Process creation \\
@@ -52,63 +102,43 @@ ID & Description \\ \hline
 \end{table}
 
 
-\section{Signatures and rules}
-\url{https://github.com/Neo23x0/sigma}
-
-Sigma is an open standard for rules that are used to generically describe searches in log data. It is primarily used as a high-level rule that transcompile into SIEM queries like Splunk, ElasticSearch, QRadar, etc. The rules are written in YAML (Yet Another Markup Language), and are key-value based.
-\\
-The following example Sigma rule is a basic rule that detects running \lstinline{ipconfig}, \lstinline{arp} and \lstinline{echo} within a ten second timeframe, filtered by the \lstinline{MachineName} key in the event: \todo{We should add some examples of what an event actually looks like, to make it more obvious to the reader what we are talking about here}
-
-\begin{lstlisting}[
-    basicstyle=\small
-]
-title: Quick Execution of a Series of Suspicious Commands
-id: 61ab5496-748e-4818-a92f-de78e20fe7aa
-description: Detects multiple suspicious process in a limited timeframe
-status: experimental
-references:
-    - https://car.mitre.org/wiki/CAR-2013-04-002
-author: Martin Ingesen
-modified: 2020/01/01
-tags:
-    - car.2013-04-002
-logsource:
-    category: process_creation
-    product: windows
-detection:
-    selection:
-        CommandLine:
-            - ipconfig
-            - arp
-            - echo
-    timeframe: 10s
-    condition: selection | count() by MachineName > 3
-falsepositives:
-    - False positives depend on scripts and
-    administrative tools used in the monitored environment
-level: low
-\end{lstlisting}
-The format contains some required and some optional fields, and is extensible with our own custom fields.
-
-\includegraphics[scale=0.525]{figures/new-rule-format/Sigma_Schema.png}
-
-Image source: \url{https://github.com/Neo23x0/sigma/wiki/Specification}
 
 \section{Event correlation}
 
-Say something about event correlation in general here. Maybe add a overview-figure?
+As stated in \cref{sec:event-logs}, a event is something that happens at a point in time. Event correlation is a statistical relationship between random events that are not necessarily expressed by a rigorous functional relationship as stated by \textcite{Prokhorov_correlation_in_statistics}. This means that the relationship between two events is based on the fact that the conditional probability of one of the events occurring, given the occurrence of another event, is different from the unconditional probability. There exists numerous ways to determine the dependency between two events, like Pearson coefficient according to \textcite{PearsonC62:online}, Spearman's rank correlation coefficient as illustrated by \textcite{Spearman38:online}, Kendall rank correlation coefficient as described in \textcite{Kendallc32:online}, Goodman and Kruskal's gamma by \textcite{Goodman_1954} just to name a few.
 
-\subsection{Scenario-based Correlation}
+Event correlation is usually applied when we want to create a higher level of understanding, based on the information found in the events. Event correlation can be used for a wide range of cases, like root-cause analysis, fault detection and future prediction and its usage can be found in areas such as market and stock trends, fraud detection, system log analysis, network management and fault analysis, medical diagnosis and treatment, et cetera. In the information security sphere, correlation can be used for things like detecting patterns of \acrfull{ddos} attacks as shown by \textcite{wei_2013} and identifying subsets of data attributes for intrusion detection as outlined by \textcite{Jiang_2004} and for detection of attacks based on the relationships between network events as shown in \textcite{kruegel_2004}.
+
+Event correlation is a broad topic, and a complete overview is outside the scope of this thesis. The following sections will highlight some of the more popular event correlation methods, and particularly rule-based event correlation which will be the main focus for our thesis with regard to event correlation techniques. 
+
 \iffalse
-https://dl.acm.org/doi/pdf/10.1145/1501434.1501479
+Many modern SIEM systems use a rule-based correlation \textcite{hanemann_2008} \textcite{limmer_2008}. It is based on a fixed correlation of events under certain conditions that may contain logical operations on data, their properties and calculated indicators. The main advantage of this method is ease of implementation. Its main drawbacks are as follows: the complexity and long time for computing the rules by the security administrator; its efficiency directly depends on the skills of administrator; and the system that uses such method is not able to detect the incidents if such rules were not initially specified for them.
+There are also
+methods based on templates (scenarios) \textcite{hanemann_2008}, graphs \textcite{ghorbani_2009} \textcite{xu_2006}, finite state machines \textcite{hasan_1999} \textcite{xu_2006}, similarity \textcite{gurer_1996} \textcite{zurutuza_2004}
+and others, but they can also be expressed in the form of rules.
+Currently, the methods that should eliminate these disadvantages are being
+developed.
+
+They are based on the intelligent data analysis. It refers to self-learning approaches such as Bayesian networks \textcite{bursztein2009using} \textcite{dantu2009network} \textcite{fedorchenko2017correlation}, immune networks \textcite{tiffany2002survey} \textcite{xu_2006}, artificial neural networks \textcite{elshoush2011alert} \textcite{kou2012evaluation} and others. For example, in \textcite{Jiang_2004} a probabilistic event correlation model for network attack detection based on spatial-temporal analysis is proposed. Here event spaces are linked in a chain of
+sequences, and a concrete state from the set of states corresponds to each space at
+the current moment. The resulting chain sequences are used to calculate the probability of a specific attack scenario. \textcite{davis2017resident} use the application behavior
+model to identify illegitimate and abnormal activity. The initial data for constructing
+the model are events that reflect the system calls of all possible applications. Based
+on the initial information, a normal behavior profile is formed by processing a
+multi-graph where each vertex is an event.
+The advantage of these approaches is in the possibility of an independent
+(unconditional) event correlation with minimization of manual settings. Their disadvantages are the complexity of learning model building, additional requirements
+to the adequacy and quality of the models, and to the completeness of original
+training data.
 \fi
+
+\iffalse
+\subsection{Scenario-based Correlation}
+https://dl.acm.org/doi/pdf/10.1145/1501434.1501479
 \subsection{Statistical Correlation}
 \subsection{Temporal Correlation}
-\subsection{Hybrid approaches}
-
-\iffalse
-\textcite{Ludovic_2004} to propose a fully functional intrusion detection system based on event and alert correlations. Among the several approaches available in the literature, we chose to implement a language driven signature based correlation. Uses FSM to implement the multi-pattern rule matching detection algorithm.
 \fi
+
 \subsection{Finite State Machines}
 % What are finite state machines?
 A finite-state machine, a system is abstracted into mathematical model which can have exactly one of a finite number of states at a time. A finite-state machine has a fixed set of possible states, a set of inputs that change the state, and a set of possible outputs as described by \textcite{keller_2001}.
@@ -518,8 +548,126 @@ In this case, we see that there is a 98.8\% chance that the problem/alert $A$ ha
 
 
 \subsection{Neural Network Approaches}
-\subsection{Etc}
+Artificial Neural Networks are used in the field of Artificial Intelligence as a system that is inspired by the neural networks in biological brains as explained by \textcite{chen2019design}. These system often come in the form of highly interconnected, neuron-like processing units. As illustrated in \cref{fig:neural-network}, the circular node represents an artificial neuron and an arrow represents a connection from the output of one artificial neuron to the input of another.
+These systems are meant to learn and perform tasks by ingesting training data, and creating their own decision model that will be applied when considering future cases.
+\n{done}
 
+\begin{figure}
+    \centering
+    \def\layersep{2cm}
+\begin{tikzpicture}[
+   shorten >=1pt,->,
+   draw=black!50,
+    node distance=\layersep,
+    every pin edge/.style={<-,shorten <=1pt},
+    neuron/.style={circle,fill=black!25,minimum size=17pt,inner sep=0pt},
+    input neuron/.style={neuron, fill=green!50},
+    output neuron/.style={neuron, fill=red!50},
+    hidden neuron/.style={neuron, fill=blue!50},
+    annot/.style={text width=4em, text centered}
+]
+
+    % Draw the input layer nodes
+    \foreach \name / \y in {1,...,4}
+    % This is the same as writing \foreach \name / \y in {1/1,2/2,3/3,4/4}
+        \node[input neuron, pin=left:Input \#\y] (I-\name) at (0,-\y) {};
+
+    % set number of hidden layers
+    \newcommand\Nhidden{3}
+
+    % Draw the hidden layer nodes
+    \foreach \N in {1,...,\Nhidden} {
+       \foreach \y in {1,...,5} {
+          \path[yshift=0.5cm]
+              node[hidden neuron] (H\N-\y) at (\N*\layersep,-\y cm) {};
+           }
+    \node[annot,above of=H\N-1, node distance=1cm] (hl\N) {Hidden layer \N};
+    }
+
+    % Draw the output layer node
+    \node[output neuron,pin={[pin edge={->}]right:Output}, right of=H\Nhidden-3] (O) {};
+
+    % Connect every node in the input layer with every node in the
+    % hidden layer.
+    \foreach \source in {1,...,4}
+        \foreach \dest in {1,...,5}
+            \path (I-\source) edge (H1-\dest);
+
+    % connect all hidden stuff
+    \foreach [remember=\N as \lastN (initially 1)] \N in {2,...,\Nhidden}
+       \foreach \source in {1,...,5}
+           \foreach \dest in {1,...,5}
+               \path (H\lastN-\source) edge (H\N-\dest);
+
+    % Connect every node in the hidden layer with the output layer
+    \foreach \source in {1,...,5}
+        \path (H\Nhidden-\source) edge (O);
+
+    % Annotate the layers
+
+    \node[annot,left of=hl1] {Input layer};
+    \node[annot,right of=hl\Nhidden] {Output layer};
+\end{tikzpicture}
+    \caption{Example of neural network with three hidden layers}
+    \label{fig:neural-network}
+\end{figure}
+
+
+The computation done in each node can vary from simple mathematical operations like a summation of all its inputs, or by using more complex operations like treshold values, temporal operation as explained by \textcite{lippmann1987introduction} or operations that involve the memory of a node as shown in \textcite{meira1997model}. To allow the network to learn, input weights are often dynamically adapted as stated by \textcite{lippmann1987introduction}. Which strategy is used for operation selection and input weighting depends on the application of the network, and multiple approaches exist for this.
+
+As \textcite{pouget2003alert} stated in their paper \citetitle{pouget2003alert}, "Neural Networks seem not to be frequently applied in Alert Correlation tools.". The primary reason for this is that it is hard to get insight into how a neural network arrived at the output it produced. This is the beauty of artificial intelligence, but also the tricky part. There are however several examples of 
+
+The authors of \citetitle{friedberg2015combating} \textcite{friedberg2015combating} automatically generated a system model with the ability to continuously evolve itself. The proposed approach was able to detect anomalies that are the consequence of realistic APT attacks.
+One of the primary benefits is the ability to adapt.
+
+An example for a practical application is presented in \textcite{wietgrefe1997using}, where a neural network is used to correlate alarms in a cellular phone network.
+
+
+\subsection{Hybrid approaches}
+In additional to all the "pure" correlation techniques, there also exist various implementations that take a hybrid approach to event correlation by utilizing two or more techniques at the same time.
+Some examples include the work done by \textcite{hanemann_2008} which combine rule-based event correlation and case-based reasoning, the authors of \citetitle{saad2012extracting}, \textcite{saad2012extracting} proposed a hybrid event correlation approach that used semantic analysis and a intrusion ontology to reconstruct attack scenarios. Furthermore, \textcite{ficco2013security} developed a hybrid, hierarchical event correlation approach for detecting complex attacks in cloud computing. Finally \textcite{Ludovic_2004} to proposed a fully functional\acrshort{ids} based on event and alert correlations by implementing a language driven signature based correlation that uses \acrshort{fsm} to implement the multi-pattern rule matching detection algorithm.
+
+\section{Signatures and rules}
+\url{https://github.com/Neo23x0/sigma}
+
+Sigma is an open standard for rules that are used to generically describe searches in log data. It is primarily used as a high-level rule that transcompile into SIEM queries like Splunk, ElasticSearch, QRadar, etc. The rules are written in YAML (Yet Another Markup Language), and are key-value based.
+\\
+The following example Sigma rule is a basic rule that detects running \lstinline{ipconfig}, \lstinline{arp} and \lstinline{echo} within a ten second timeframe, filtered by the \lstinline{MachineName} key in the event: \todo{We should add some examples of what an event actually looks like, to make it more obvious to the reader what we are talking about here}
+
+\begin{lstlisting}[
+    basicstyle=\small
+]
+title: Quick Execution of a Series of Suspicious Commands
+id: 61ab5496-748e-4818-a92f-de78e20fe7aa
+description: Detects multiple suspicious process in a limited timeframe
+status: experimental
+references:
+    - https://car.mitre.org/wiki/CAR-2013-04-002
+author: Martin Ingesen
+modified: 2020/01/01
+tags:
+    - car.2013-04-002
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        CommandLine:
+            - ipconfig
+            - arp
+            - echo
+    timeframe: 10s
+    condition: selection | count() by MachineName > 3
+falsepositives:
+    - False positives depend on scripts and
+    administrative tools used in the monitored environment
+level: low
+\end{lstlisting}
+The format contains some required and some optional fields, and is extensible with our own custom fields.
+
+\includegraphics[scale=0.525]{figures/new-rule-format/Sigma_Schema.png}
+
+Image source: \url{https://github.com/Neo23x0/sigma/wiki/Specification}
 
 \section{Simple Event Correlator}
 \label{sec:SEC}

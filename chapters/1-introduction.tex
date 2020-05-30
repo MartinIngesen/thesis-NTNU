@@ -26,13 +26,12 @@ Lastly, we have event forwarding, which is software that sends the events genera
 Event forwarding requires knowledge of what logs to forward and what to filter out. The number of events that are generated per second can vary, and being able to estimate the amount of logs are important so that the central log collection can be scaled appropriately to accommodate the volume of logs that are being ingested and stored.
 In recent years, the technology both for configuring and maintaining software on the hosts and systems for ingesting host data to a central location has done great leaps. Vendors of security products have made their software simpler to configure, usually via a cloud-based console. Storage is in general cheaper, and \acrfull{siem} software has made it simpler to monitor and analyze large volumes of event and log data.
 
-\phantomsection
 \section{Problem description}
 \label{sec:problemdescription}
 Even though new technology has made it easier to collect and store huge amounts of events, the problem still persist on how to analyze and alert on those events in real time when collected centrally.
-A problem that occurs when companies are collecting more and more logs, is that actively hunting and alerting on badness in those logs are becoming harder and more complex. A single log item from a single source is not enough to properly analyze what has happened in a system. Only by cross-correlating several log lines and log sources are we able fully understand the situation at hand and create detection that are of high quality.
+A problem that occurs when companies are collecting more and more logs, is that actively hunting and alerting on badness in those logs are becoming harder and more complex as told by \textcite{Fatemi_2020}. A single log item from a single source is not enough to properly analyze what has happened in a system. Only by cross-correlating several log lines and log sources are we able fully understand the situation at hand and create detection that are of high quality.
 
-While modern \acrshort{siem} software like \textcite{Splunk}, \textcite{QRadar} and \textcite{NetWitness} support searching, analyzing and alerting in various degrees, quality \acrshort{siem}s are usually heavyweight, expensive, licensed by how many gigabytes are ingested per day. The alert rules can be hard to create, manage and share between analysts, and probably the most significant factor is that the alerts are only generated after the log data has been indexed. This adds unnecessary latency when we optimally want near real-time alerting. Traditionally in a \acrshort{siem}, logs are analyzed after-the-fact by an analyst. This is a major drawback, as this type of security monitoring is reactive and error-prone.
+While modern \acrshort{siem} software like \textcite{Splunk}, \textcite{QRadar} and \textcite{NetWitness} support searching, analyzing and alerting in various degrees, quality \acrshort{siem}s are usually heavyweight, expensive, licensed by how many gigabytes are ingested per day. The alert rules can be hard to create, manage and share between analysts, and probably the most significant factor is that the alerts are only generated after the log data has been indexed. This adds unnecessary latency when we optimally want near real-time alerting. Traditionally in a \acrshort{siem}, logs are analyzed after-the-fact by an analyst. This is a major drawback, as this type of security monitoring is reactive and error-prone, and problems are only detected in hindsight as explained by \textcite{Landauer_2020}.
 
 When considering free or open-source solutions like \textcite{OSSIM}, \textcite{OSSEC} and \textcite{SEC-website} to correlate event logs in real-time, they are often lacking in terms of performance and ease-of-use.
 In addition, when considering distributed company environments, the hosts are not always able to send their event logs at the same time. There will be delays based on the geographical location of the host, network latency or network connectivity issues. Events may be ingested in the "wrong" (non-sequential) order, or asynchronous with other hosts.
@@ -45,12 +44,18 @@ As the volume of ingested events increase, there is a big demand for solutions t
 Each host generate a huge amount of events that can be available to us for analysis and correlation, and can give deep insight into what is happening on each system. While we have this goldmine of host event data, we can not simply apply signature-based alerting like we commonly see in anti-virus products. The reason for this is that it is much harder to tell if a single event contains malice. A event might for example contain the information that a specific user deleted a file. This could be malicious, or it could be benign. The context around that event decides if it is malicious activity or not. That level of context-awareness is impossible to get with regular signatures, and is why event correlation can be so powerful, but tricky.
 Another benefit of centrally analyzing event data from multiple hosts is the cross-host correlation that can be done. It makes it possible to create correlations that identify host-to-host interactions, lateral movement and attacker behaviour across the whole network, which previously only was possible with network-based monitoring. In the Microsoft Windows operating systems, those logs are known as Windows Event Logs.
 
-We believe that the specialized software can be further enhanced to improve the performance of real time event correlation. In this thesis we contribute an improved method for correlating Windows Event logs in near real-time, while at the same time taking care to address the problems with might occur with log ingestion delays and asynchronous events.
+Modern approaches in cyber security shift from a purely forensic to a proactive analysis of event logs as told by \textcite{He_2017}. We believe that the specialized software can be further enhanced to improve the performance of real time event correlation. In this thesis we contribute an improved method for correlating Windows Event logs in near real-time, while at the same time taking care to address the problems with might occur with log ingestion delays and asynchronous events.
 
 \section{Research questions}
 \label{sec:researchquestions}
-To address the problems outlined in \ref{sec:problemdescription}, the following research questions have been developed:\\
-\textbf{Hypothesis:} We believe that we are able to improve upon current research and methods for real time event correlation, by utilizing a compiled, multi-threaded programming language and better rule formats.\\
+To address the problems outlined in \ref{sec:problemdescription}, the following research questions have been developed:
+
+\medskip
+
+\textbf{Hypothesis:} We believe that we are able to improve upon current research and methods for real time event correlation, by utilizing a compiled, multi-threaded programming language and better rule formats.
+
+\medskip
+
 \textbf{Research questions:}
 \begin{enumerate}
     \item What is the state of the art for real time event correlation?

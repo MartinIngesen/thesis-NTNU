@@ -8,11 +8,11 @@
 
 %% IDENTIFICATION
 
-\xdef\ntnuthesisdate{2019/07/18}
+\xdef\ntnuthesisdate{2020/06/02}
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesClass{ntnuthesis}
  [\ntnuthesisdate\space
-   CC-BY CoPCSE at NTNU 2019]
+   CC-BY MI 2020]
 
 
 %% CLASS OPTIONS
@@ -245,7 +245,7 @@
 \def\ps@ntnuheadings{%
     \let\@evenfoot\@empty
     \let\@oddfoot\@empty
-    \def\@evenhead{\small\thepage\hfil\textit{\@shortauthor: \@shorttitle}}
+    \def\@evenhead{\small\thepage\hfil\textit{\@shorttitle}}
     \def\@oddhead{\small\textit{\ch@ptermark}\hfil\thepage}
     \def\chaptermark##1{\def\ch@ptermark{\chaptername\ \thechapter: ##1}}
 }
