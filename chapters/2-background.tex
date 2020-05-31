@@ -107,7 +107,7 @@ ID & Description \\ \hline
 
 As stated in \cref{sec:event-logs}, a event is something that happens at a point in time. Event correlation is a statistical relationship between random events that are not necessarily expressed by a rigorous functional relationship as stated by \textcite{Prokhorov_correlation_in_statistics}. This means that the relationship between two events is based on the fact that the conditional probability of one of the events occurring, given the occurrence of another event, is different from the unconditional probability. There exists numerous ways to determine the dependency between two events, like Pearson coefficient according to \textcite{PearsonC62:online}, Spearman's rank correlation coefficient as illustrated by \textcite{Spearman38:online}, Kendall rank correlation coefficient as described in \textcite{Kendallc32:online}, Goodman and Kruskal's gamma by \textcite{Goodman_1954} just to name a few.
 
-Event correlation is usually applied when we want to create a higher level of understanding, based on the information found in the events. Event correlation can be used for a wide range of cases, like root-cause analysis, fault detection and future prediction and its usage can be found in areas such as market and stock trends, fraud detection, system log analysis, network management and fault analysis, medical diagnosis and treatment, et cetera. In the information security sphere, correlation can be used for things like detecting patterns of \acrfull{ddos} attacks as shown by \textcite{wei_2013} and identifying subsets of data attributes for intrusion detection as outlined by \textcite{Jiang_2004} and for detection of attacks based on the relationships between network events as shown in \textcite{kruegel_2004}.
+Event correlation is usually applied when we want to create a higher level of understanding, based on the information found in the events. By correlating events, we can gather up smaller events that in and of them self are not worthy an alarm, and create an over-arching alarm that encompasses the smaller events. Event correlation can be used for a wide range of cases, like root-cause analysis, fault detection and future prediction and its usage can be found in areas such as market and stock trends, fraud detection, system log analysis, network management and fault analysis, medical diagnosis and treatment, et cetera. In the information security sphere, correlation can be used for things like detecting patterns of \acrfull{ddos} attacks as shown by \textcite{wei_2013} and identifying subsets of data attributes for intrusion detection as outlined by \textcite{Jiang_2004} and for detection of attacks based on the relationships between network events as shown in \textcite{kruegel_2004}.
 
 Event correlation is a broad topic, and a complete overview is outside the scope of this thesis. The following sections will highlight some of the more popular event correlation methods, and particularly rule-based event correlation which will be the main focus for our thesis with regard to event correlation techniques. 
 
@@ -199,53 +199,52 @@ An approach to use finite-state machines for event correlation has been shown by
 One of the main drawback with the finite-state machine is the missing notion of time. As shown in Figure \ref{fig:finite-state-machine-2} we can take into account order of events, but a finite-state machine does not separate on the time difference between events that are streamed into the model.
 
 \subsection{Rule-based Event Correlation}
+\label{sub:rule-based-event-correlation}
+Rule-based event correlation software is historically known as a expert system. Expert systems is defined by \textcite{cronk_1988} as a "problem-solving software that embodies specialized knowledge in a narrow task domain to do work usually performed by a trained, skilled human.". According to \textcite{cronk_1988}, expert systems are organized around three levels; data, control and knowledge. As shown in \cref{fig:rule-based-expert-system}, the data level is the working memory of the expert system that contains the events that are being processed. Then the knowledge level is the rule repository that contains the domain-specific expert knowledge. Finally we have the control level which consist of the inference engine that determines how to apply the rules from the knowledge base against the working memory.
 
-\todo{Give an intro into the world of correlating events, why is it so valuable?}
+\begin{figure}[htbp]
+\centering
+%\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
+\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=6cm,
+                    thick,main node/.style={circle,draw,font=\sffamily\Large\bfseries},
+                    problemm/.style={circle, text centered, draw=black, fill=red!30},
+                    stepp/.style={rectangle, minimum width=7cm, minimum height=1cm,text centered, draw=black, fill=orange!30},
+                    libraryy/.style={rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=green!30}]
+  \node (workingmemory) [stepp] {Working Memory};
+  \node (inferenceengine) [stepp, below of=workingmemory] {Inference Engine};
+  \node (knowledgebase) [stepp, below of=inferenceengine] {Knowledge Base};
+  
+  \path[every node/.style={font=\sffamily\small}]
+    (workingmemory)
+        edge[bend left, text width=2.0cm, align=center] node {Remove data elements} (inferenceengine)
+    (inferenceengine)
+        edge[bend left, text width=2.0cm, align=center] node {Create new data elements} (workingmemory)
+        edge[text width=1.6cm, align=center] node[anchor=center,fill=white] {Modify attributes of data elements} (workingmemory)
+        edge[bend right, text width=2.0cm, align=center, swap] node {Match potential rule} (knowledgebase)
+    (knowledgebase)
+        edge[text width=1.6cm, align=center] node[anchor=center,fill=white] {Select "best" rule} (inferenceengine)
+        edge[bend right, text width=2.0cm, align=center, swap] node {Invoke action} (inferenceengine)
+        
+    ;
+\end{tikzpicture}
+\caption{Model of rule-based expert systems}
+\label{fig:rule-based-expert-system}
+\end{figure}
 
-\begin{itemize}
-    \item Reduce alert-fatigue by generating high-fidelity alerts.
-    \item Gather up smaller events that in and of them self are not worthy an alarm.
-\end{itemize}
+Traditionally, creating the rules that goes into a knowledge base is defined as two-fold; first you have the subject-matter expert which has the expertise and knowledge about which events you are interested in creating correlations against, and secondly the knowledge engineer which is familiar with how the expert system works and how the rules has to be written to be understood by the system.
+In more modern settings, usually the subject-matter expert and the knowledge engineer is the same person. This person has both the knowledge of which events are of interest, and the capability to implement, monitor and tune the rules necessary to detect the events that are of interest.
 
-Rule-based event correlation software is historically known as a expert system. The work of \textcite{cronk_1988} defines an expert system as a "problem-solving software that embodies specialized knowledge in a narrow task domain to do work usually performed by a trained, skilled human.".
+The value of a rule-based approach is that the rules in the knowledge base can be written with a close similarity to the human language. For example if we want to write a rule for the occurrence of two different events X and Y, it could be spelled out like "\textit{\textbf{IF} event X \textbf{AND} event Y \textbf{THEN} doAction}". This also makes it easier to deduce how and why an alert was triggered. We will take a further look at different rules that can be utilized with rule-based event correlation in \cref{sec:rules}.
 
-According to \textcite{cronk_1988}, expert systems are organized around three levels; data, control and task knowledge. \todo{See figure 2 in paper. It should be incorporated in some way, as it pretty much defines how we have built MEC}.
+In larger production environments, it is also important that the rules are specific enough, so that they do not generate too many alarms.
+There can be multiple reasons that a rule will trigger too many times. If the subject-matter expert is not specific enough when defining which conditions are to be added to the rule, or there can be a lack of proper events to analyze, such that to catch the behaviour that the subject-matter expert wants to detect, the knowledge engineer will have to write a more generic rule than wanted. Regardless, the knowledge engineer will have to tune the rule such that it will not flood the analysts with new alerts. Commonly such rules are ran in a test system with production input such that the knowledge engineer can collect metrics on how often the rules trigger alerts before adding the rule to production.
 
-Traditionally, creating the rules that goes into a knowledge base is in \textcite{cronk_1988} defined as two-fold; first you have the subject-matter expert which has the expertise and knowledge about which events you are interested in creating correlations against, and secondly the knowledge engineer which is familiar with how the expert system works and how the rules has to be written to be understood by the system.
-In more modern settings, usually the subject-matter expert is also able to write rules
+One of the main drawbacks, and probably the biggest reason for other types of event correlation is the lack of learning or adaptability, which menas that the same correlation will be made for every similar case every time as stated by \textcite{meira1997model}. Networks may differ, so it is not given that a rule that fits into one network, can automatically be used in another. As outlined by \textcite{lewis_1993}, rule-based correlation tend to fail when presented with new or unexpected situations. In addition, creating new rules, maintaining old rules and adapting the rules in the knowledge base can be time-consuming.
+Regardless of these drawbacks, we see a common trend that rule-based systems are the most common when it comes to network-based monitoring (see \textcite{Suricata49:online}, \textcite{SnortNet49:online}) as well as for log data in \acrshort{siem}s like \textcite{Splunk}, \textcite{OSSEC} and \textcite{OSSIM}.
 
-What are some of the drawbacks of rule-based event correlation?
+There exists several different types of software that makes it possible to correlate events in real-time based on log data. From more simple projects like \textcite{swatchdog}, LogSurfer \cite{thompson_2017} and \acrshort{sec} \cite{SEC}, to more complex projects with multiple moving parts like \textcite{Prelude:online}, \textcite{OSSEC}, \textcite{Wazuh:online}, \textcite{ApacheMe75:online}, \textcite{MozDef}, \textcite{OpenNMS}, \textcite{OSSIM}.
 
-\begin{itemize}
-    \item Doesn't learn or adapt
-    \item Requires the subject-matter expert to define the rules, and the knowledge engineer to implement them
-    \item Time-consuming to write and "push" rules into the system
-    \item Requires testing and monitoring to make sure that:
-    \begin{enumerate}
-        \item the rule triggers on the intended events and
-        \item the rule does not create tons of alerts that will flood the analysts handling the alerts
-    \end{enumerate} 
-    \item Maintenance of the rule repository is time-consuming
-    \item Networks may differ, so it's not given that a rule that fits into one network, can automatically be used in another.
-\end{itemize}
-
-Regardless of all the drawbacks, we see a common trend that rule-based systems are the most common when it comes to network-based monitoring (see Suricata, Snort) as well as for log data in SIEMs like Splunk, ELK, OSSEC and OSSIM.
-
-
-There exists several different types of software that makes it possible to correlate events in real-time based on log data.
-
-Software based on event correlation commonly referenced in academia today is largely defunct or the source code is unavailable. 
-
-\begin{itemize}
-    \item Swatch and 2swatch - defunct, single-threaded. Last updated in 1997?
-    \item logsurfer \textcite{thompson_2017} written in C. Improves upon Swatch.
-    \item Simple Event Correlator (SEC) is still being actively developed to this date. This is the software that is the most prominent in the literature that I have found. I will address that tool in its own separate section under \ref{sec:SEC}.
-    \item Variable Temporal Event Correlator (VTEC) - Built custom for log monitoring and correlation at the company Advanced Micro Devices (AMD). Can not find source code. Feature distributed "workers" and a "variable server" that holds state. Written in Perl and the software uses Perl-based rules.
-    \item Event Query Language (EQL). Part of Endgame/Elastic. Written in Python. Scales vertically, same as SEC. Implements a Abstract Syntax Tree for Windows Event Logs specifically.
-    \item KSQL - Supports correlation based on time in a Kafka queue. Limited to Kafka as queuing technology.
-    \item Splunk - One of the most popular Enterprise SIEM solutions. Supports writing "alerts" that allow time-based correlations.
-\end{itemize}
-There are several other correlation-based systems other than the ones mentioned above, but they employ some form of machine learning or statistical analysis instead of a rule-based approach. This is usually used for anomaly detection or "finding the unknown" in a dataset, which is not the focus of this thesis.
+Throughout most of the literature regarding event correlation of log data, \acrfull{sec} \cite{SEC} has stuck out as one of the most popular software for doing event correlation on log data, as seen in \textcite{kont2017frankenstack}, \textcite{farshchi2018anomaly} and \textcite{vaarandi2003data} just to name a few. I will address \acrshort{sec} further under \cref{sec:SEC}.
 
 \subsection{Case-based Reasoning}
 
@@ -286,7 +285,8 @@ Under each step in the cycle there are multiple tasks that may be necessary to c
 \end{tikzpicture}
 \caption{Case-based reasoning cycle}
 \label{fig:case-based-reasoning-cycle}
-\end{figure}\\
+\end{figure}
+
 A example where this might be useful is in a Security Operations Center (SOC). A SOC receives a high number of alerts that have to be handled by an analyst to analyse and propose a response to the alert. The response can vary from simply suppressing the alert as a false-positive, sending an e-mail to the client to alert them, or escalating the alarm to the Incident Response team. Case-based reasoning can then be applied to new alerts by first retrieving the most similar alerts previously handled. The information stored in the previous case can then be used to handle the analysis or solution to an alert. The analyst will then revise the proposed solution, and retain the parts that might be useful for resolving similar future alerts. This follows the case-based reasoning cycle proposed in \citetitle{aamodt_1994} by \textcite{aamodt_1994}.
 
 The retrieval step is difficult because we need to find similar cases that offer solutions that are relevant. Cases may contain attributes that are irrelevant, which might not be clear to the automated retrieval process.
@@ -426,8 +426,6 @@ $p^3$ & 1 & 0 & 1
 \label{tab:correlation-matrix-reduced}
 \end{table}
 
-\subsection{Voting approaches}
-\subsection{Explicit Fault-localization}
 \subsection{Dependency Graphs}
 
 
@@ -550,7 +548,6 @@ In this case, we see that there is a 98.8\% chance that the problem/alert $A$ ha
 \subsection{Neural Network Approaches}
 Artificial Neural Networks are used in the field of Artificial Intelligence as a system that is inspired by the neural networks in biological brains as explained by \textcite{chen2019design}. These system often come in the form of highly interconnected, neuron-like processing units. As illustrated in \cref{fig:neural-network}, the circular node represents an artificial neuron and an arrow represents a connection from the output of one artificial neuron to the input of another.
 These systems are meant to learn and perform tasks by ingesting training data, and creating their own decision model that will be applied when considering future cases.
-\n{done}
 
 \begin{figure}
     \centering
@@ -615,78 +612,195 @@ These systems are meant to learn and perform tasks by ingesting training data, a
 
 The computation done in each node can vary from simple mathematical operations like a summation of all its inputs, or by using more complex operations like treshold values, temporal operation as explained by \textcite{lippmann1987introduction} or operations that involve the memory of a node as shown in \textcite{meira1997model}. To allow the network to learn, input weights are often dynamically adapted as stated by \textcite{lippmann1987introduction}. Which strategy is used for operation selection and input weighting depends on the application of the network, and multiple approaches exist for this.
 
-As \textcite{pouget2003alert} stated in their paper \citetitle{pouget2003alert}, "Neural Networks seem not to be frequently applied in Alert Correlation tools.". The primary reason for this is that it is hard to get insight into how a neural network arrived at the output it produced. This is the beauty of artificial intelligence, but also the tricky part. There are however several examples of 
+As \textcite{pouget2003alert} stated in their paper \citetitle{pouget2003alert}, "Neural Networks seem not to be frequently applied in Alert Correlation tools.". The primary reason for this is that it is hard to get insight into how a neural network arrived at the output it produced. Regardless, there are several papers that use artificial intelligence and neural networks for event correlation. The authors of \citetitle{friedberg2015combating} \textcite{friedberg2015combating} automatically generated a system model with the ability to continuously evolve itself. The proposed approach was able to detect anomalies that are the consequence of realistic APT attacks. In the work by \textcite{lin2019detecting}, the authors used a distributed gradient boosting library to classify real-world malware programs with more than 99\% success-rate. Another approach is presented in \citetitle{wietgrefe1997using}, where the authors \textcite{wietgrefe1997using} used a neural network to correlate alarms in a cellular phone network.
 
-The authors of \citetitle{friedberg2015combating} \textcite{friedberg2015combating} automatically generated a system model with the ability to continuously evolve itself. The proposed approach was able to detect anomalies that are the consequence of realistic APT attacks.
-One of the primary benefits is the ability to adapt.
-
-An example for a practical application is presented in \textcite{wietgrefe1997using}, where a neural network is used to correlate alarms in a cellular phone network.
-
+One of the primary benefits of using neural networks is the ability the networks has to adapt either via training data, or in real time during processing of live event. As pointed out by \textcite{pouget2003alert}, the main drawback speaks to the fact that it is hard for an analyst to comprehend how a artificial neural network has concluded, which may affect the trust in the system.
 
 \subsection{Hybrid approaches}
 In additional to all the "pure" correlation techniques, there also exist various implementations that take a hybrid approach to event correlation by utilizing two or more techniques at the same time.
 Some examples include the work done by \textcite{hanemann_2008} which combine rule-based event correlation and case-based reasoning, the authors of \citetitle{saad2012extracting}, \textcite{saad2012extracting} proposed a hybrid event correlation approach that used semantic analysis and a intrusion ontology to reconstruct attack scenarios. Furthermore, \textcite{ficco2013security} developed a hybrid, hierarchical event correlation approach for detecting complex attacks in cloud computing. Finally \textcite{Ludovic_2004} to proposed a fully functional\acrshort{ids} based on event and alert correlations by implementing a language driven signature based correlation that uses \acrshort{fsm} to implement the multi-pattern rule matching detection algorithm.
 
-\section{Signatures and rules}
-\url{https://github.com/Neo23x0/sigma}
-
-Sigma is an open standard for rules that are used to generically describe searches in log data. It is primarily used as a high-level rule that transcompile into SIEM queries like Splunk, ElasticSearch, QRadar, etc. The rules are written in YAML (Yet Another Markup Language), and are key-value based.
-\\
-The following example Sigma rule is a basic rule that detects running \lstinline{ipconfig}, \lstinline{arp} and \lstinline{echo} within a ten second timeframe, filtered by the \lstinline{MachineName} key in the event: \todo{We should add some examples of what an event actually looks like, to make it more obvious to the reader what we are talking about here}
-
-\begin{lstlisting}[
-    basicstyle=\small
-]
-title: Quick Execution of a Series of Suspicious Commands
-id: 61ab5496-748e-4818-a92f-de78e20fe7aa
-description: Detects multiple suspicious process in a limited timeframe
-status: experimental
-references:
-    - https://car.mitre.org/wiki/CAR-2013-04-002
-author: Martin Ingesen
-modified: 2020/01/01
-tags:
-    - car.2013-04-002
-logsource:
-    category: process_creation
-    product: windows
-detection:
-    selection:
-        CommandLine:
-            - ipconfig
-            - arp
-            - echo
-    timeframe: 10s
-    condition: selection | count() by MachineName > 3
-falsepositives:
-    - False positives depend on scripts and
-    administrative tools used in the monitored environment
-level: low
-\end{lstlisting}
-The format contains some required and some optional fields, and is extensible with our own custom fields.
-
-\includegraphics[scale=0.525]{figures/new-rule-format/Sigma_Schema.png}
-
-Image source: \url{https://github.com/Neo23x0/sigma/wiki/Specification}
-
 \section{Simple Event Correlator}
 \label{sec:SEC}
 
-In the research that I have found, SEC is the most commonly referenced and used software for event correlation across different syslog events. It is widely used, and has been deployed in several different sectors and industries (Finance, Telecom, IT security, Government, Retail, etc. \textcite{vaarandi2005tools}) and utilized for several different purposes like fraud detection, insider-threat detection, system fault and availability and security events. SEC is quite versatile, as it is agnostic to the type of log event that it receives. SEC uses rules that are using Perl-style regular expressions for matching events and extracting data from the event itself using sub-expressions. The extracted data can then be used to correlate between other matching events.
+As previously stated, throughout the relevant research done with regards to event correlation of system logs, \acrshort{sec} seems to be the most commonly referenced and used software. It is widely used and as \textcite{vaarandi2005tools} explains, has been deployed in several different sectors and industries (Finance, Telecom, IT security, Government, Retail, etc.). \acrshort{sec} has been utilized for several different purposes like fraud detection, insider-threat detection, system fault and availability and security events.
 
-However, even though SEC is popular and commonly used, there are several improvements that could be done. Some of the constraints include:
-\begin{itemize}
-    \item Heavily based on regular expressions for writing rules, which makes it both hard to analyze rules, modifying existing rules and writing new rules.
-    \item Current version can only be scaled vertically. The context-state used for correlation is per-process only and therefore any and all correlation between events have to happen in the same process. It is possible to use SEC in a multi-process fashion to handle separate log types, but this removes the possibility to correlate between those log types. 
-    \item Few open source rules and rule-sets. The analyst generally has to start from scratch writing their own rules
-    \item Limited support for multi-line logs
-    \item Windows Event Logs has to be converted to syslog
-    \item Made generic, not specific for Windows Event Logs
-\end{itemize}
+SEC is quite versatile, as it is agnostic to the type of log event that it receives. SEC uses rules that are using Perl-style regular expressions for matching events and extracting data from the event itself using sub-expressions. The extracted data can then be used to correlate between other matching events.
+
+\iffalse
+SEC reads lines from files, named pipes, or standard input, matches the lines with patterns (like regular expressions or Perl subroutines) for recognizing input events, and correlates events according to the rules in its configuration file(s). SEC can produce output by executing external programs (e.g., snmptrap or mail), by writing to files, by sending data to TCP and UDP based servers, by calling precompiled Perl subroutines, etc.
+\fi
+
+The rules used in \acrshort{sec} are heavily based on regular expressions, which makes it hard to understand, modify and write new rules. The argument for using regular expressions builds on the assumption that most system and network administrators are already familiar with the regular expression language as stated in \textcite{vaarandi2002sec}. Although that might be the case, complex regular expressions can be hard to comprehend, and the output of the regular expression also requires detailed knowledge of what the input event looks like. The rule format of \acrshort{sec} will be further explained under \cref{sub:sec-rule-format}.
+In addition to this, there are few open source rules and rule-sets with a focus on security, which means that the analyst generally has to start from scratch writing their own rules.
+
+Perhaps the biggest drawback of \acrshort{sec} is that \acrshort{sec} bases its correlation time on when the event was read from the input file. It does not take into account any timestamps that may be in the logs.
+If logs are ingested from multiple systems (like a enterprise environment) the logs could be delayed for multiple reasons, or if \acrshort{sec} is unable to ingest the log events fast enough (either because of I/O delays or a huge amount of logs), the timestamp of the logs will be different from when the log event was \textit{actually} produced. The consequences of this could be severe, as events that should be correlated together in a given timeframe might drift away from each-other and not be correlated at all.
+
+Scaling is possible, but a bit hard. It is possible to spawn several \acrshort{sec} instances that ingest their own separate event streams and different rule sets as described by \textcite{vaarandi2015practices}. \textcite{sec-distributed} utilize this fact to run several instances of \acrshort{sec} on several servers, but also on a single machine as show in \cref{fig:standard-sec-usage}. However this makes it impossible to correlate across event streams, as the \acrshort{sec} instances do not have any knowledge of the other instances in the system. At first \textcite{sec-distributed} considered rewriting and implementing a memory object caching system named "memcached" \cite{memcache74:online} as seen in \cref{fig:distributed-sec-concept} that would allow the \acrshort{sec} instances to share their context between each-other. However they chose not to tackle that particular problem. In the end, \textcite{sec-distributed} ended up with implementing a solution similar to \cref{fig:horizontal-scaling-of-sec}, where each SEC instance produces new syslog events and sends them to a master instance which then correlates across the event streams and creates a single alert output.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[->,
+>=stealth',
+shorten >=1pt,
+thick,
+node distance=2.25cm and 2cm, % y and x
+stepp/.style={rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30}
+]
+  \node (es1) [] {Event stream 1};
+  \node (es2) [below of=es1] {Event stream 2};
+  \node (es3) [below of=es2] {Event stream 3};
+  \node (sec1) [stepp, right= of es1] {SEC instance};
+  \node (sec2) [stepp, right= of es2] {SEC instance};
+  \node (sec3) [stepp, right= of es3] {SEC instance};
+  \node (out1) [right= of sec1] {Alert output 1};
+  \node (out2) [below of=out1] {Alert output 2};
+  \node (out3) [below of=out2] {Alert output 3};
+  \node[draw=red,dotted,fit=(sec1) (sec2)] {  multiple instances on one machine};
+  
+  \path[every node/.style={font=\sffamily\small}]
+    (es1)
+        edge node {} (sec1)
+    (es2)
+        edge node {} (sec2)
+    (es3)
+        edge node {} (sec3)
+    (sec1)
+        edge node {} (out1)
+    (sec2)
+        edge node {} (out2)
+    (sec3)
+        edge node {} (out3)
+    ;
+\end{tikzpicture}
+\caption{Standard SEC usage}
+\label{fig:standard-sec-usage}
+\end{figure}
+
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[->,
+>=stealth',
+shorten >=1pt,
+thick,
+node distance=1.5cm and 2cm, % y and x
+stepp/.style={rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30},
+libraryy/.style={rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=green!30},
+]
+  \node (es1) [] {Event stream 1};
+  \node (es2) [below of=es1] {};
+  \node (es3) [below of=es2] {Event stream 2};
+  \node (sec1) [stepp, right= of es1] {SEC instance};
+  \node (memcached) [libraryy, below of= sec1] {memcached};
+  \node (sec3) [stepp, right= of es3] {SEC instance};
+  \node (out1) [right= of sec1] {Alert output 1};
+  \node (out2) [below of=out1] {};
+  \node (out3) [below of=out2] {Alert output 2};
+  
+  \path[every node/.style={font=\sffamily\small}]
+    (es1)
+        edge node {} (sec1)
+    (es3)
+        edge node {} (sec3)
+    (sec1)
+        edge node {} (out1)
+        edge node {} (memcached)
+    (sec3)
+        edge node {} (out3)
+        edge node {} (memcached)
+    ;
+\end{tikzpicture}
+\caption{Distributed SEC concept}
+\label{fig:distributed-sec-concept}
+\end{figure}
+
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[->,
+>=stealth',
+shorten >=1pt,
+thick,
+node distance=2.25cm and 0.75cm, % y and x
+stepp/.style={rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30}
+]
+  \node (es1) [] {Event stream 1};
+  \node (es2) [below of=es1] {Event stream 2};
+  \node (es3) [below of=es2] {Event stream 3};
+  \node (sec1) [stepp, right= of es1] {SEC instance};
+  \node (sec2) [stepp, right= of es2] {SEC instance};
+  \node (sec3) [stepp, right= of es3] {SEC instance};
+  \node (master) [stepp, right= of sec2] {SEC master};
+  \node (out1) [right= of master] {Alert output};
+  \node[draw=red,dotted,fit=(sec1) (sec2)] {  multiple instances on one machine};
+  
+  \path[every node/.style={font=\sffamily\small}]
+    (es1)
+        edge node {} (sec1)
+    (es2)
+        edge node {} (sec2)
+    (es3)
+        edge node {} (sec3)
+    (sec1)
+        edge[bend left] node {} (master)
+    (sec2)
+        edge node {} (master)
+    (sec3)
+        edge[bend right] node {} (master)
+    (master)
+        edge node {} (out1)
+    ;
+\end{tikzpicture}
+\caption{Horizontal scaling of SEC}
+\label{fig:horizontal-scaling-of-sec}
+\end{figure}
+
+\section{Correlation rules}
+\label{sec:rules}
+Just as there are multiple different software and systems for doing rule-based event correlation, there are multiple ways of representing the rules in the knowledge base.
+
+Custom stuff - SEC
+XML-based
+General purpose languages such as Lua or Python
+SQL like in Esper
+YAML-based like Sigma
+
+The rules
+Readability
+Complexity
+
+A additional goodie would be if there are mulitple examples and the documentation is good.
+
+
+Mention Rete.
+
+We will take a deeper look at the rule format used in \acrfull{sec} in \cref{sub:sec-rule-format}, and at Sigma as a candidate rule format in \cref{sub:sigma}.
+
+\iffalse
+FLYTT DENNE TIL SIGNATURES AND RULES
+The language used to represent correlation rules is a topic of active research. Approaches used
+in current products range from simple proprietary languages (e.g. in Simple Event Correlator
+(SEC); cf. Section 3.4.3), to XML based languages (e.g. in OSSIM; cf. Section 3.4.7), general
+purpose languages (such as Lua, which is used in Prelude; cf. Section 3.4.6) to Structured Query
+Language (SQL) based rule languages (e.g. in Esper; cf. Section 3.4.9).
+As stated above, the evaluation of the rules requires some control logic. In a simple case,
+the control logic may simply evaluate one rule after the other, until the first matching rule is
+found (similarly to how the Linux network filter executes iptables rules). In more complex
+cases, forward chaining may be used to derive new knowledge by applying the rules from the
+rule repository to the existing knowledge (deductive reasoning). Practical implementations often
+make use of some variant of the RETE algorithm [26]. In contrary to the linear approach, the
+RETE algorithm is asymptotically independent of the number of rules [55].
+
+\fi
 
 
 \subsection{SEC rule format}
-\n{Move this section somewhere else}
+\label{sub:sec-rule-format}
+
+We will not cover the full depth of \acrshort{sec}, for a deeper dive into \acrshort{sec} the reader is referred to the paper \citetitle{rouillard2004real} by \textcite{rouillard2004real}.
+
 \begin{lstlisting}
 type=single
 ptype=regexp
@@ -741,3 +855,48 @@ The action to take when the rule "hits".
 \subsubsection{continue}
 
 \subsubsection{context}
+
+
+\subsection{Sigma}
+\label{sub:sigma}
+\url{https://github.com/Neo23x0/sigma}
+
+Sigma is an open standard for rules that are used to generically describe searches in log data. It is primarily used as a high-level rule that transcompile into SIEM queries like Splunk, ElasticSearch, QRadar, etc. The rules are written in YAML (Yet Another Markup Language), and are key-value based.
+\\
+The following example Sigma rule is a basic rule that detects running \lstinline{ipconfig}, \lstinline{arp} and \lstinline{echo} within a ten second timeframe, filtered by the \lstinline{MachineName} key in the event: \todo{We should add some examples of what an event actually looks like, to make it more obvious to the reader what we are talking about here}
+
+\begin{lstlisting}[
+    basicstyle=\small
+]
+title: Quick Execution of a Series of Suspicious Commands
+id: 61ab5496-748e-4818-a92f-de78e20fe7aa
+description: Detects multiple suspicious process in a limited timeframe
+status: experimental
+references:
+    - https://car.mitre.org/wiki/CAR-2013-04-002
+author: Martin Ingesen
+modified: 2020/01/01
+tags:
+    - car.2013-04-002
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection:
+        CommandLine:
+            - ipconfig
+            - arp
+            - echo
+    timeframe: 10s
+    condition: selection | count() by MachineName > 3
+falsepositives:
+    - False positives depend on scripts and
+    administrative tools used in the monitored environment
+level: low
+\end{lstlisting}
+The format contains some required and some optional fields, and is extensible with our own custom fields.
+
+\includegraphics[scale=0.525]{figures/new-rule-format/Sigma_Schema.png}
+
+Image source: \url{https://github.com/Neo23x0/sigma/wiki/Specification}
+
