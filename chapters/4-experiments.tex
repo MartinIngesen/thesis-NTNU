@@ -29,7 +29,9 @@ The host system used for running the experiments feature a Intel(R) Core(TM) i7-
 
 \section{Dataset}
 
+In total, the two subsets contain 223 563 log lines in JSON format. 116 572 of these are of the type "Microsoft-Windows-Sysmon" which will be the main focus of our experiments.
 
+We can check the distribution over time. How many logs are there in 10 second intervals?
 
 \section{Dataset preprocessing}
 \label{sec:datasetprocessing}
@@ -44,6 +46,39 @@ cat empire_apt3_2019-05-14223117.json | grep -i "Microsoft-Windows-Sysmon" | jq 
 
 \section{Implementation that uses Simple Event Correlators own rule format (regex based)}
 \todo{Why did we choose Go?}
+
+Does a compiled programming language give us benefits in terms of performance, compared to an interpreted programming language?
+
+\todo{Casually mention Go here?}
+
+There are several reasons to use gravitate towards Go as the language of choice.
+\begin{itemize}
+    \item Compiled language offer performance benefits over interpreted languages
+    \item Go routines and channels makes it easy to implement concurrent execution as discussed in Section \cref{sub:concurrent-execution}.
+    \item Cross-platform
+    \item Garbage collection
+    \item Strongly and statically typed
+    \item Race-condition detection
+    \item Built-in profiling tools
+\end{itemize}
+
+\iffalse
+\section{The Go programming language}
+
+\com{Her er en rask intro, argumentasjonen hvorfor vi valgte dette finner du i eksperiment XYZ}
+\todo{Why did we choose Go?} \com{Dette er ikke teori/bakgrunn, men mer et metodevalg.}
+\subsection{Goroutines}
+\todo{What are these lightweight Go threads?}\\
+Goroutines are lightweight threads that are handled by the Go runtime.
+\subsection{Channels}
+
+\todo{What are channels? What are some of the considerations we have to take when working with them?}\\
+\todo{Are there any best practices?}\\
+Channels are the preferred way to communicate between Goroutines in Go.
+
+\subsection{Concurrency vs parallelism}
+\todo{Discuss why Go is concurrent, but not parallel}
+\fi
 
 \subsection{Implementation}
 As discussed in chapter X, the programming language Go was chosen for implementing our new program to analyze our datasets. I have chosen to only implement the SingleWithTreshold type, and the RegExp pattern type (ptype). The "SingleWithTreshold" type triggers an action if there are X number of matches within Y time. We consider this to be the most usable rule type for our purpose. \com{What is the purpose?} For the pattern type, we choose to use "RegExp", which are Perl regular expressions. We consider this to be the best option for matching against syslog-based log lines.

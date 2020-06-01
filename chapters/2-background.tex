@@ -627,15 +627,11 @@ As previously stated, throughout the relevant research done with regards to even
 
 SEC is quite versatile, as it is agnostic to the type of log event that it receives. SEC uses rules that are using Perl-style regular expressions for matching events and extracting data from the event itself using sub-expressions. The extracted data can then be used to correlate between other matching events.
 
-\iffalse
-SEC reads lines from files, named pipes, or standard input, matches the lines with patterns (like regular expressions or Perl subroutines) for recognizing input events, and correlates events according to the rules in its configuration file(s). SEC can produce output by executing external programs (e.g., snmptrap or mail), by writing to files, by sending data to TCP and UDP based servers, by calling precompiled Perl subroutines, etc.
-\fi
-
 The rules used in \acrshort{sec} are heavily based on regular expressions, which makes it hard to understand, modify and write new rules. The argument for using regular expressions builds on the assumption that most system and network administrators are already familiar with the regular expression language as stated in \textcite{vaarandi2002sec}. Although that might be the case, complex regular expressions can be hard to comprehend, and the output of the regular expression also requires detailed knowledge of what the input event looks like. The rule format of \acrshort{sec} will be further explained under \cref{sub:sec-rule-format}.
 In addition to this, there are few open source rules and rule-sets with a focus on security, which means that the analyst generally has to start from scratch writing their own rules.
 
 Perhaps the biggest drawback of \acrshort{sec} is that \acrshort{sec} bases its correlation time on when the event was read from the input file. It does not take into account any timestamps that may be in the logs.
-If logs are ingested from multiple systems (like a enterprise environment) the logs could be delayed for multiple reasons, or if \acrshort{sec} is unable to ingest the log events fast enough (either because of I/O delays or a huge amount of logs), the timestamp of the logs will be different from when the log event was \textit{actually} produced. The consequences of this could be severe, as events that should be correlated together in a given timeframe might drift away from each-other and not be correlated at all.
+If logs are ingested from multiple systems (like in a enterprise environment) the logs could be delayed for multiple reasons, or if \acrshort{sec} is unable to ingest the log events fast enough (either because of I/O delays or a huge amount of logs), the timestamp of the logs will be different from when the log event was \textit{actually} produced. The consequences of this could be severe, as events that \textit{should} be correlated together in a given timeframe might drift away from each-other and not be correlated at all.
 
 Scaling is possible, but a bit hard. It is possible to spawn several \acrshort{sec} instances that ingest their own separate event streams and different rule sets as described by \textcite{vaarandi2015practices}. \textcite{sec-distributed} utilize this fact to run several instances of \acrshort{sec} on several servers, but also on a single machine as show in \cref{fig:standard-sec-usage}. However this makes it impossible to correlate across event streams, as the \acrshort{sec} instances do not have any knowledge of the other instances in the system. At first \textcite{sec-distributed} considered rewriting and implementing a memory object caching system named "memcached" \cite{memcache74:online} as seen in \cref{fig:distributed-sec-concept} that would allow the \acrshort{sec} instances to share their context between each-other. However they chose not to tackle that particular problem. In the end, \textcite{sec-distributed} ended up with implementing a solution similar to \cref{fig:horizontal-scaling-of-sec}, where each SEC instance produces new syslog events and sends them to a master instance which then correlates across the event streams and creates a single alert output.
 
@@ -915,7 +911,7 @@ Sigma is primarily used as a high-level rule that is transcompile into \acrshort
 \begin{lstlisting}[
     caption={Example Sigma rule for detecting quick execution of a series of commands},
     label=sigma-example-rule,
-    language=YAML]
+    language=Perl]
 title: Quick Execution of a Series of Suspicious Commands
 logsource:
     product: windows
@@ -936,7 +932,7 @@ The \cref{sigma-example-rule} is a minimal example that is similar to the rule s
     caption={Example event for Sigma},
     label=sigma-example-event,
     breaklines=true,
-    language=YAML]
+    language=perl]
 MachineName: Client01.mrtn.lab
 UtcTime: 2020-02-18 10:29:49.839
 ProcessId: 1040
