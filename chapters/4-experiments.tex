@@ -1,6 +1,6 @@
 \chapter{Experiments}
 \label{chap:experiments}
-The following chapter introduce our improved implementation based on the methodology presented in \cref{chap:methodology}. The dataset collection and required preprocessing is presented, the software and hardware specifications.......
+The following chapter introduce our improved implementation based on the methodology presented in \cref{chap:methodology}. The software and hardware specifications are listed, the dataset collection and required preprocessing is presented, and we introduce our solution in two step, first a solution that uses the same rule format as \acrshort{sec}, and then a improved version that implements Sigma \cite{Sigma} and a better way for internally representing events as discussed in \cref{sub:internal-rep-of-logs}.
 
 \iffalse
 graph the dataset and look at peaks.
@@ -14,56 +14,41 @@ specifications and the used algorithms during the experiment are presented as we
 methodology for reproducibility of the use case.
 \fi
 
-\section{Software Specifications}
-\label{sec:softwarespecs}
-
-\begin{itemize}
-    \item Ubuntu 18.04.4 LTS Released February 2020
-    \item go version go1.13.3 linux/amd64, released October 2019
-    \item Perl v5.30.2 built for x86\_64-linux, march 2020
-\end{itemize}
-
-\section{Hardware Specifications}
-\label{sec:hardwarespecs}
+\section{Hardware and Software Specifications}
+\label{sec:hardwaresoftwarespecs}
 The host system used for running the experiments feature a Intel(R) Core(TM) i7-7600U CPU @ 2.80GHz processor and 24 GB memory. The processor features two physical cores, and is capable of running two threads per core. This means that the processor has a maximum of 4 logical cores.
 
-\section{Dataset}
+The software versions of interest are:
+\begin{itemize}
+    \item Ubuntu 18.04.4 LTS, released February 2020
+    \item go version go1.13.3 linux/amd64, released October 2019
+    \item Perl v5.30.2 built for x86\_64-linux, released March 2020
+    \item Simple Event Correlator v2.8.2, released on Jun 2, 2019
+\end{itemize}
+
+\section{Dataset preprocessing and analysis}
 
 In total, the two subsets contain 223 563 log lines in JSON format. 116 572 of these are of the type "Microsoft-Windows-Sysmon" which will be the main focus of our experiments.
+As previously explained in \cref{sec:SEC}, \acrshort{sec} is created to work with logs that contain one event per line in syslog format. For us to be able to use the Mordor dataset in \acrshort{sec}, we had to convert the \acrshort{json} logs into a syslog-friendly format. We converted the Mordor APT3 datasets by extracting the hostname and the raw Windows Event message which was still intact in the \acrshort{json} events. The script used can be found in \cref{appendix:sysmon-to-syslog-python-script}. 
 
-We can check the distribution over time. How many logs are there in 10 second intervals?
+It was interesting to us to graph the dataset, as a way to identify if the frequency of events are relatively stable, or of there are peaks in the dataset. Using the script found in \cref{appendix:extract-events-in-10s-intervals} we calculated how many events occurred in every 10 second interval in the dataset. This is valuable as it will tell us what the peak number of events might be, and will guide us in understanding if we are reaching our goal of real time event correlation.
+In addition, we wanted to look at the number of computers and users in the dataset. This is valuable as it will give us an idea of how large the environment is. We did this using the scripts in \cref{appendix:extract-computers-from-dataset} and \cref{appendix:extract-users-from-dataset} respectively.
 
-\section{Dataset preprocessing}
-\label{sec:datasetprocessing}
+\section{Implementation that uses SECs own regex-based rule format}
 
-The Mordor-dataset require us to do some pre-processing to ingest it into Simple Event Correlator. Since our own solution is supposed to mirror SEC, 
-SEC is created to work with logs that contain one event per line in syslog format. We converted the Mordor APT3 datasets by extracting the hostname and the raw Windows Event message. Elaborate on that. The script used can be found in \cref{appendix:sysmon-to-syslog-python-script}.
+\subsection{Choosing a compiled language}
 
-\iffalse
-cat empire_apt3_2019-05-14223117.json | grep -i "Microsoft-Windows-Sysmon" | jq -c '. | {message: .message, hostname: .winlog.computer_name }' > ~/master-files/eventlogs/mordor/sysmon-empire.json
+As explained in \cref{sub:use-compiled-language}, there are several benefits when using a compiled language in terms of performance gains.
 
-\fi
+Go \cite{golang} is cross-platform, supports garbage collection, is strongly and statically typed
+In addition, Go features powerful built-in profiling tools and race-condition detection that can help development. This is especially valuable as we know we want to implement concurrency, and detecting and fixing any race-condition issues is of great importance.
+Go makes building concurrent programs easy by providing features such as Go routines for spawning new threads, and channels for communicating between the threads.
 
-\section{Implementation that uses Simple Event Correlators own rule format (regex based)}
-\todo{Why did we choose Go?}
-
-Does a compiled programming language give us benefits in terms of performance, compared to an interpreted programming language?
-
-\todo{Casually mention Go here?}
-
-There are several reasons to use gravitate towards Go as the language of choice.
-\begin{itemize}
-    \item Compiled language offer performance benefits over interpreted languages
-    \item Go routines and channels makes it easy to implement concurrent execution as discussed in Section \cref{sub:concurrent-execution}.
-    \item Cross-platform
-    \item Garbage collection
-    \item Strongly and statically typed
-    \item Race-condition detection
-    \item Built-in profiling tools
-\end{itemize}
 
 \iffalse
 \section{The Go programming language}
+
+This will not be an extensive intro to Go, the interested reader is referred to \textcite{golang} for further details.
 
 \com{Her er en rask intro, argumentasjonen hvorfor vi valgte dette finner du i eksperiment XYZ}
 \todo{Why did we choose Go?} \com{Dette er ikke teori/bakgrunn, men mer et metodevalg.}
@@ -71,7 +56,7 @@ There are several reasons to use gravitate towards Go as the language of choice.
 \todo{What are these lightweight Go threads?}\\
 Goroutines are lightweight threads that are handled by the Go runtime.
 \subsection{Channels}
-
+The use of channels and goroutines gives us the ability to run in a threaded matter, utilizing multiple cores.
 \todo{What are channels? What are some of the considerations we have to take when working with them?}\\
 \todo{Are there any best practices?}\\
 Channels are the preferred way to communicate between Goroutines in Go.
@@ -80,17 +65,63 @@ Channels are the preferred way to communicate between Goroutines in Go.
 \todo{Discuss why Go is concurrent, but not parallel}
 \fi
 
-\subsection{Implementation}
-As discussed in chapter X, the programming language Go was chosen for implementing our new program to analyze our datasets. I have chosen to only implement the SingleWithTreshold type, and the RegExp pattern type (ptype). The "SingleWithTreshold" type triggers an action if there are X number of matches within Y time. We consider this to be the most usable rule type for our purpose. \com{What is the purpose?} For the pattern type, we choose to use "RegExp", which are Perl regular expressions. We consider this to be the best option for matching against syslog-based log lines.
 
 Other than the fact that Go is a compiled language and Perl is a interpreted language, the main additions in our implementation is that our version:
 \begin{itemize}
     \item Uses Go channels for re-injecting events into the context engine.
-    \item The use of channels and goroutines gives us the ability to run in a threaded matter, utilizing multiple cores.
+    \item 
 \end{itemize}
 
 \subsubsection{Workers}
-\todo{What are workers?}
+
+
+\subsection{Implementation}
+When considering which features we wanted to implement from \acrshort{sec}, we chose to implement the features that we saw the best value in. We chose to only implement the \textit{Single} and \textit{SingleWithTreshold} type, and the \textit{RegExp} pattern type. These are the features required to implement the rule found in \cref{sec-example-rule}, and also some of the most popular features observed from the \acrshort{sec} rule repository \cite{sec-rulesets}.
+
+Furthermore, we implemented threading by using Go routines and channels. The architecture can be seen from the \cref{fig:reimplementation-architecture}. While it might seem complex, in reality it is pretty simple. Each block is a separate Go routine running in a lightweight thread. \lstinline{getEvents()} reads events from input, and sends each event on a channel named \lstinline{eventChannel}. The \lstinline{handleEvent()} Go routines (named workers in our implementation), listens to this channel and when a new event arrives, picks it off the channel and starts processing it. As can be seen from \cref{fig:reimplementation-architecture}, the workers are sharing context, that they will lock on if any rules are matching and they need to do some correlation. If a rule matches and issues a \textit{event} action (as shown in \cref{sec-example-rule}), the worker will push the event action on to a new channel that is being listened to by \lstinline{reinjectEvents()}. \lstinline{reinjectEvents()} is a Go routine with the sole purpose to collect events from multiple workers and forward them on a single channel, reinjecting into \lstinline{eventChannel}. This makes the new events available to the the workers, so that they can process the new events. If any of the \lstinline{handleEvent()} workers completes a correlation according to the rule, and the rule issues a \textit{write} action, the action is written to output.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[->,
+>=stealth',
+shorten >=1pt,
+thick,
+node distance=2.25cm and 0.75cm, % y and x
+stepp/.style={rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30},
+libraryy/.style={rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=green!30},
+]
+  \node (events) [] {events.txt};
+  \node (getEvents) [stepp, right= of events] {getEvents()};
+  \node (context) [libraryy, right= of getEvents] {context};
+  \node (handleEvent1) [stepp, above of=context] {handleEvent()};
+  \node (handleEvent2) [stepp, below of=context] {handleEvent()};
+  \node (reinjectEvents) [stepp, right= of context] {reinjectEvents()};
+  \node (output) [right= of reinjectEvents] {Output};
+  \node[draw=red,dotted,fit=(handleEvent1) (handleEvent2), label={above:{Workers}}] {};
+  
+  \path[every node/.style={font=\sffamily\small}]
+    (events)
+        edge[bend left] node {} (getEvents)
+    (getEvents)
+        edge[bend left] node {} (events)
+        edge[bend left] node {} (handleEvent1)
+        edge[bend right] node {} (handleEvent2)
+    (handleEvent1)
+        edge node {} (context)
+        edge[bend left] node {} (reinjectEvents)
+        edge[bend left] node {} (output)
+    (handleEvent2)
+        edge node {} (context)
+        edge[bend right] node {} (reinjectEvents)
+        edge[bend right] node {} (output)
+    (reinjectEvents)
+        edge[bend left=35] node {} (getEvents)
+    ;
+\end{tikzpicture}
+\caption{Reimplementation in Go}
+\label{fig:reimplementation-architecture}
+\end{figure}
+
 
 \section{Implemented a new rule format}
 This format relies less on the extensive use of Regexes \com{Hvorfor er dette en fordel? Hvorfor er dette valget smart? Beskriv dette i experiment delen?}, as we saw in the rules used by Simple Event Correlator. \todo{Elaborate on this}
