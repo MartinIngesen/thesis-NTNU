@@ -3,8 +3,8 @@
 
 In this chapter we will give an introduction to event logs, and further elaborate on Windows Event logs and \acrfull{sysmon}.
 Then we will give a quick dive into the field of event correlation, and highlight some of the relevant techniques for correlating events.
-Furthermore we will take a look at various types of signatures and rules that can be used with rule-based event correlation.
-Finally we will take a look at \acrfull{sec}, as that is the rule-based event correlator that we will try to outperform.
+Furthermore we will take a look at \acrfull{sec}, as that is the rule-based event correlator that we will focus on in this thesis.
+Finally we will take a look at various types of rules that can be used with rule-based event correlation.
 
 \section{Event logs}
 \label{sec:event-logs}
@@ -908,44 +908,48 @@ This is not an extensive listing of the features in the \acrshort{sec} rule lang
 
 \subsection{Sigma}
 \label{sub:sigma}
-\url{https://github.com/Neo23x0/sigma}
+Sigma is a "Generic Signature Format for SIEM Systems"\cite{Sigma}. Sigma is an open standard for rules that are used to generically describe searches in log data. The value proposition of Sigma is that there is a lack of standardisation within the SIEM search field. A given query to search for the same item might look very different depending on the \acrshort{siem} platform used. This makes it inherently harder to share and contribute rules within the community. 
 
-Sigma is an open standard for rules that are used to generically describe searches in log data. It is primarily used as a high-level rule that transcompile into SIEM queries like Splunk, ElasticSearch, QRadar, etc. The rules are written in YAML (Yet Another Markup Language), and are key-value based.
-\\
-The following example Sigma rule is a basic rule that detects running \lstinline{ipconfig}, \lstinline{arp} and \lstinline{echo} within a ten second timeframe, filtered by the \lstinline{MachineName} key in the event: \todo{We should add some examples of what an event actually looks like, to make it more obvious to the reader what we are talking about here}
+Sigma is primarily used as a high-level rule that is transcompile into \acrshort{siem} queries for products like \textcite{Splunk}, ElasticSearch \cite{ElasticS68:online}, NetWitness \cite{NetWitness}, etc. The rules are written in \acrfull{yaml}\cite{yaml}, which is a key-value based format that uses indentation to indicate nesting. The rule format contains some required and some optional fields, and it is extensible with custom fields as shown in \cref{fig:sigma-spec}.
 
 \begin{lstlisting}[
-    basicstyle=\small
-]
+    caption={Example Sigma rule for detecting quick execution of a series of commands},
+    label=sigma-example-rule,
+    language=YAML]
 title: Quick Execution of a Series of Suspicious Commands
-id: 61ab5496-748e-4818-a92f-de78e20fe7aa
-description: Detects multiple suspicious process in a limited timeframe
-status: experimental
-references:
-    - https://car.mitre.org/wiki/CAR-2013-04-002
-author: Martin Ingesen
-modified: 2020/01/01
-tags:
-    - car.2013-04-002
 logsource:
-    category: process_creation
     product: windows
+    service: sysmon
 detection:
     selection:
-        CommandLine:
-            - ipconfig
-            - arp
-            - echo
+        OriginalFileName|contains:
+            - whoami
+            - hostname
+            - powershell
     timeframe: 10s
-    condition: selection | count() by MachineName > 3
-falsepositives:
-    - False positives depend on scripts and
-    administrative tools used in the monitored environment
-level: low
+    condition: selection | count(User) by MachineName >= 3
 \end{lstlisting}
-The format contains some required and some optional fields, and is extensible with our own custom fields.
 
-\includegraphics[scale=0.525]{figures/new-rule-format/Sigma_Schema.png}
+The \cref{sigma-example-rule} is a minimal example that is similar to the rule shown in \cref{sec-example-rule}. An example input event can be found in \cref{sigma-example-event}. The rule is selecting the \lstinline{OriginalFileName}-key from our event and checking if it contains any of the following entries: \lstinline{whoami}, \lstinline{hostname} or  \lstinline{powershell}. The rule creates a timeframe of 10 seconds, and the condition counts the distinct user names grouped by \lstinline{MachineName}, and checks if the count is more than or equal to three.
 
-Image source: \url{https://github.com/Neo23x0/sigma/wiki/Specification}
+\begin{lstlisting}[
+    caption={Example event for Sigma},
+    label=sigma-example-event,
+    breaklines=true,
+    language=YAML]
+MachineName: Client01.mrtn.lab
+UtcTime: 2020-02-18 10:29:49.839
+ProcessId: 1040
+OriginalFileName: whoami.exe
+User: MRTNLAB\mrtn
+\end{lstlisting}
 
+There exists a vast amount of example rules, and new rules are added continuously to the project by contributors \cite{sigmarules}. For further information about the details of the Sigma specification, the interested reader is referred to the Sigma Specification \cite{SigmaSpecification}.
+
+\begin{figure}[htbp]  % order of priority: h here, t top, b bottom, p page
+  \centering
+  \includegraphics[scale=0.6]{figures/new-rule-format/Sigma_Schema.png}
+
+  \caption[Sigma specification]{Sigma specification \cite{SigmaSpecification}}
+  \label{fig:sigma-spec}
+\end{figure}
