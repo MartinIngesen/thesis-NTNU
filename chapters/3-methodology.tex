@@ -14,11 +14,9 @@ Your rationale for choosing these methods
     \item What is the performance of our proposed method, and how does it compare to other methods?
 \end{enumerate}
 
-\anders{Vil bare understreke at du kanskje er ute etter en vitenskapelig metode her, ikke å gå inn på hvorfor du valgte Go. Go er implmentasjonen din, mer på begrunnelse i en beskrivelse av valg av verktøy for performance reasons or whatnot. Når jeg leser methodology i en vitenskapelig oppgave/artikkel/avhandling så skal det gå på om du f.eks. utvikler noe nytt, bidrar til en felles forståelse om bedring av et eksisterende miljø eller noe sånt svada.}
 \fi
 
-The goal of this thesis is to explore.. if there is any way that we can improve the way real time event correlation is done, and in particular for Windows Event Logs.
-In the chapter \cref{chap:background} we discussed the background and state of the art for doing event correlation.
+One of the main goals of this thesis is to explore if there is any way that we can improve the way real time event correlation is done, and in particular for Windows Event Logs. In the following chapter we will discuss the methodology used address this goal. We will evaluate which datasets exist and should be used, we will discuss the various ways we can improve how event correlation can be done, and we will take a look at how that performance change can be measured.
 
 \section{Datasets}
 \label{sec:datasets}
@@ -31,31 +29,13 @@ When evaluating which datasets we want to use for our experiments, we first have
 \begin{itemize}
     \item Size - The dataset must be large enough to measure the performance of existing solutions and our proposed solution.
     \item Representative - The dataset must be representative of the real world
-    \item Up to date - The dataset should be of a recent date \todo{Because?}
+    \item Up to date - The dataset should preferably be of a recent date
 \end{itemize}
 
 \subsubsection{Boss of the SOC}
 Boss of the SOC (BOTS) are datasets created for Splunks Boss of the SOC capture the flag competitions. The datasets are created in a controlled environment, where some adversary actions has been taken. The contestants have to analyze and hunt in the data to answer several security-related questions which grant points.
 
-\todo{Describe the BOTS-datasets}
-\todo{Run some actual tests against the dataset to see if we get a hit with our rules}
-
-There are multiple versions of the BOTS datasets.
-\textbf{Version 1}
-\url{https://github.com/splunk/botsv1}
-
-\todo{Acquire this dataset}
-
-\textbf{Version 2}
-\url{https://github.com/splunk/botsv2}
-
-There are two versions; one which only contains attacker-related data, and one with the all the data, including noise. We have chosen to use the full dataset. This version contains a variety of different data sources. The one we are interested in is called xmlwineventlog. The dataset contains 1 093 753 lines of xmlwineventlog data. We have to convert this to our syslog-format, and we can simply do that using a Python script.
-
-
-\textbf{Version 3}
-\url{https://github.com/splunk/botsv3}
-
-Contains 9 212 lines of xmlwineventlog events.
+The datasets from BOTS are released in a Splunk-indexed format, meaning that one would have to set up a Splunk instance, import the indexed dataset, and then export the dataset out in a more usable format (like JavaScript Object Notation (JSON)). 
 
 \subsubsection{Mordor}
 \url{https://github.com/hunters-forge/mordor}
