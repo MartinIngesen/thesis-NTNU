@@ -759,103 +759,152 @@ stepp/.style={rectangle, minimum width=3cm, minimum height=1cm, text centered, d
 
 \section{Correlation rules}
 \label{sec:rules}
-Just as there are multiple different software and systems for doing rule-based event correlation, there are multiple ways of representing the rules in the knowledge base.
+Just as there are multiple different software and systems for doing rule-based event correlation, there are multiple ways of representing the rules in a knowledge base. In general there are two requirements when it comes to rules. Since they are written and maintained by a knowledge engineer, making the rules readable and easy to create is important. In addition, the rules have to be flexible enough such that it is possible to represent the wishes of the subject-matter expert, preferably without affecting the readability of the rule.
 
-Custom stuff - SEC
-XML-based
-General purpose languages such as Lua or Python
-SQL like in Esper
-YAML-based like Sigma
+One of the most common ways to write rules are by using boolean operations, either explicitly or implicitly. As exemplified earlier, if we want to write a rule for the occurrence of two different events X and Y, it could be spelled out like "\textit{\textbf{IF} event X \textbf{AND} event Y \textbf{THEN} doAction}". Further complexity could be added by adding additional boolean operations, and by using order of operation marks like parentheses. An exmaple of this could be "\textit{\textbf{IF} event X \textbf{AND} \textbf{(}event Y \textbf{OR} event Z\textbf{)} \textbf{THEN} doAction}".
 
-The rules
-Readability
-Complexity
+Rules for event correlation has been implemented in a range of various ways. General purpose languages such as Lua or Python has been used for example in Prelude \cite{Prelude:online}. Markup languages like XML and YAML as seen in OSSEC \cite{OSSECRules}, OSSIM \cite{OSSIM-rules} and Sigma \cite{Sigma}. \acrfull{sql} rules like those used in Esper \cite{EsperEsp68:online} or custom definitions like those seen in SEC \cite{SEC}, EQL \cite{eqlsyntax} and \textcite{Splunk}.
 
-A additional goodie would be if there are mulitple examples and the documentation is good.
+When the inference engine tries to find matching rules from the knowledge base, the engine might take the linear approach and try each and every rule in sequence until it finds a match (or does not find a match). Another approach to this is by using the Rete algorithm found in \textcite{forgy1989rete}. This algorithm creates a directed acyclic graph that represents the rule set. The graph is defined with a right and left side, called alpha and beta respectively. All the selection and conditional nodes are in the alpha side, while combining and enrichment nodes are on the beta side. As can be seen in \cref{fig:rete}, When a new event is sent through this graph, it enters at the root node in the alpha side of the graph. After passing through the graph, the event ends at a terminal node which is the output of the Rete. As opposed to linear searching the knowledge base, Rete is independent of this and could perform much better when there are a lot of rules involved in the correlation,  as told by \textcite{pouget2003alert}. Some practical implementations use Rete for event correlation as seen in \textcite{doorenbos1995production}. The interested reader is referred to \textcite{forgy1989rete} for more details about the Rete algorithm.
 
+\begin{figure}[ht]  % order of priority: h here, t top, b bottom, p page
+  \centering
+  \includegraphics[width=\textwidth]{figures/rete-image.png}
+  \caption[Illustrates the basic Rete]{Illustrates the basic Rete\cite{reteimage}}
+  \label{fig:rete}
+\end{figure}
 
-Mention Rete.
-
-We will take a deeper look at the rule format used in \acrfull{sec} in \cref{sub:sec-rule-format}, and at Sigma as a candidate rule format in \cref{sub:sigma}.
-
-\iffalse
-FLYTT DENNE TIL SIGNATURES AND RULES
-The language used to represent correlation rules is a topic of active research. Approaches used
-in current products range from simple proprietary languages (e.g. in Simple Event Correlator
-(SEC); cf. Section 3.4.3), to XML based languages (e.g. in OSSIM; cf. Section 3.4.7), general
-purpose languages (such as Lua, which is used in Prelude; cf. Section 3.4.6) to Structured Query
-Language (SQL) based rule languages (e.g. in Esper; cf. Section 3.4.9).
-As stated above, the evaluation of the rules requires some control logic. In a simple case,
-the control logic may simply evaluate one rule after the other, until the first matching rule is
-found (similarly to how the Linux network filter executes iptables rules). In more complex
-cases, forward chaining may be used to derive new knowledge by applying the rules from the
-rule repository to the existing knowledge (deductive reasoning). Practical implementations often
-make use of some variant of the RETE algorithm [26]. In contrary to the linear approach, the
-RETE algorithm is asymptotically independent of the number of rules [55].
-
-\fi
-
+As said, \acrfull{sec} uses a custom format design particularly for \acrshort{sec} based on regular expressions. We will further examine this rule format under \cref{sub:sec-rule-format}. We will also consider Sigma in greater detail in \cref{sub:sigma} as a possible candidate for replacing the rules used by \acrshort{sec}.
 
 \subsection{SEC rule format}
 \label{sub:sec-rule-format}
+\acrshort{sec} rule files are simple text-files that contain one or more blocks of key-value pairs. One block is considered one rule. This block contains a set of pre-specified keys that make up how the rule works.
 
-We will not cover the full depth of \acrshort{sec}, for a deeper dive into \acrshort{sec} the reader is referred to the paper \citetitle{rouillard2004real} by \textcite{rouillard2004real}.
+SEC applies each rule sequentially, and will stop looking when it finds a match (unless that specific rule uses the continue keyword). With this knowledge it is possible to optimize the rule set by placing more popular rules nearer the top of the rule set as told by \textcite{rouillard2004real}.
 
-\begin{lstlisting}
-type=single
-ptype=regexp
-pattern=(\S+)sshd.*
-desc=This is a description
+A rule consists of a subset of the following keywords, where some of the keywords are only applicable if some of the keywords holds a special value:
+\begin{itemize}
+    \item type - which kind of rule
+    \item ptype - which type of pattern
+    \item pattern - pattern to match event against
+    \item desc - rule description
+    \item action - action to take if pattern is matched
+    \item continue - if set, allows SEC to continue searching for other matching rules
+    \item context - boolean statement based on global context variables
+    \item thresh - (if applicable) threshold for triggering event
+    \item window - (if applicable) time window in seconds
+\end{itemize}
+
+for \textbf{type}, there are multiple different possible values:
+\begin{itemize}
+    \item Single - Match input and execute action.
+    \item Suppress - Suppress the matching input which keeps the input from being matched by later rules.
+    \item Calendar - Execute action on a given time.
+    \item SingleWithSuppress - A combination of Single and Suppress. Match input and execute action, but suppress the matching input for a set period of time afterwards.
+    \item Pair - Match input and execute action, then wait until another event arrives and execute second action.
+    \item PairWithWindow - Like Pair, but also execute an action if second event does not arrive.
+    \item SingleWithThreshold - Count matching input in a time window, if number of matches is above a threshold, execute action and ignore matches for rest of window.
+    \item SingleWith2Thresholds - Count matching input in a time window, if number of matches is above a threshold, execute action. Then create new count, and if number of matches drops below the threshold, execute action. 
+    \item EventGroup - Count N number of different events and execute action if all of them reach their given threshold.
+    \item SingleWithScript - Match value and depending on return-value of external script, do action.
+    \item Jump - Submits matching event to another rule set for further processing.
+\end{itemize}
+
+For \textbf{ptype}, there are multiple different possible values:
+
+\begin{itemize}
+    \item SubStr - pattern is a string that will be searched for in the event
+    \item RegExp - pattern is a Perl regular expression
+    \item PerlFunc - pattern is a Perl function for matching
+    \item Cached - pattern matches previously cached patterns.
+    \item TValue - pattern is a boolean value (TRUE/FALSE) that always or never matches.
+\end{itemize}
+
+In addition to the above-mentioned values for ptype, they all have (except for TValue) a negated version as well, prefixed with "N" (as in NSubStr, NRegExp, etc).
+
+The following example in figure \cref{sec-example-rule} is a slimmed down version of the "MITRE CAR-2013-04-002: Quick execution of a series of suspicious commands" \cite{CAR2013057:online}. The purpose of the rule is to detect quick execution of commands that a regular user would not frequently do, but that an attacker might run as part of their reconnaissance or exploitation of the system.
+
+As an example, consider that the following events occur within 10 seconds from start to finish:
+
+\begin{enumerate}
+    \item \colorbox{blue!30}{Alice ran word.exe on PC1}
+    \item \colorbox{green!30}{Bob ran calc.exe on PC2}
+    \item \colorbox{red!30}{Mallory ran whoami.exe on PC1}
+    \item \colorbox{red!30}{Mallory ran ssh.exe on PC1}
+    \item \colorbox{green!30}{Bob ran powershell.exe on PC2}
+    \item \colorbox{blue!30}{Alice ran firefox.exe on PC1}
+    \item \colorbox{red!30}{Mallory ran powershell.exe on PC1}
+    \item \colorbox{red!30}{Mallory ran systeminfo.exe on PC1}
+    \item \colorbox{green!30}{Bob ran word.exe on PC2}
+    \item \colorbox{blue!30}{Alice ran powerpoint.exe on PC1}
+    \item \colorbox{red!30}{Mallory ran hostname.exe on PC1}
+\end{enumerate}
+
+If we apply the rule shown in \cref{sec-example-rule}, during the execution, the following events will be created and re-injected into the event stream:
+
+\begin{enumerate}
+    \item \colorbox{red!30}{Interesting\_commands\_by\_Mallory\_on\_PC1}
+    \item \colorbox{green!30}{Interesting\_commands\_by\_Bob\_on\_PC2}
+    \item \colorbox{red!30}{Interesting\_commands\_by\_Mallory\_on\_PC1}
+    \item \colorbox{red!30}{Interesting\_commands\_by\_Mallory\_on\_PC1}
+\end{enumerate}
+
+These re-injected events will be processed by rule \#4, and when the threshold number of 3 is met for the event "\textit{Interesting\_commands\_by\_Mallory\_on\_PC1}", the rule will trigger its action and write "\textit{Three interesting commands were run on host PC1 by user Mallory}" to the console.
+
+\begin{lstlisting}[
+    caption={Example ruleset for detecting quick execution of a series of commands},
+    label=sec-example-rule,
+    language=Perl]
+# Rule 1
+type=Single
+ptype=RegExp
+pattern=(\S+) ran whoami\.exe on (\S+)
+desc=$0
+action=event Interesting_commands_by_$1_on_$2
+
+# Rule 2
+type=Single
+ptype=RegExp
+pattern=(\S+) ran powershell\.exe on (\S+)
+desc=$0
+action=event Interesting_commands_by_$1_on_$2
+
+# Rule 3
+type=Single
+ptype=RegExp
+pattern=(\S+) ran hostname\.exe on (\S+)
+desc=$0
+action=event Interesting_commands_by_$1_on_$2
+
+# Rule 4
+type=SingleWithThreshold
+ptype=RegExp
+pattern=Interesting_commands_by_(\S+)_on_(\S+)
+desc=$0
+action=write - Three interesting commands were run on host $2 by user $1
+window=10
+thresh=3
 \end{lstlisting}
 
-\subsubsection{type}
-Type of rule. There are many different types here.
-I have focused on rules using "SingleWithThreshold" which takes an action if there are X number of matches in Y time.
+In addition to the rule show in \cref{sec-example-rule}, we can implement the same rule by using the EventGroup type as show in \cref{sec-example-rule-2}. This rule works similarly as the first rule, but the main difference with EventGroups is that all the event conditions have to be satisfied before the action will trigger. This means that we explicitly have to have all three patterns match, and will not trigger if for instance \textit{whoami.exe} is ran three times in a row.
 
-Single
+\begin{lstlisting}[
+    caption={Example ruleset 2 for detecting quick execution of a series of commands},
+    label=sec-example-rule-2,
+    language=Perl]
+type=EventGroup3
+ptype=RegExp
+pattern=(\S+) ran whoami\.exe on (\S+)
+ptype2=RegExp
+pattern2=(\S+) ran powershell\.exe on (\S+)
+ptype3=RegExp
+pattern3=(\S+) ran hostname\.exe on (\S+)
+desc=Three interesting commands were run on host $2 by user $1
+actiom=write - Three interesting commands were run on host $2 by user $1
+window=10
+\end{lstlisting}
 
-Suppress
-
-Calendar
-
-SingleWithSuppress
-
-Pair
-
-PairWithWindow
-
-SingleWith2Thresholds
-
-EventGroup
-
-SingleWithScript
-
-Jump
-
-\subsubsection{ptype}
-Pattern type. RegExp is a Perl regular expression. Can use variables.
-
-SubStr
-
-PerlFunc
-
-Cached
-
-TValue
-
-\subsubsection{pattern}
-The pattern that the log line will we tested against. The value of this pattern is based on the ptype. For example, if the ptype is set to "RegExp", the pattern will be a Perl regular expression.
-
-\subsubsection{desc}
-Description field. But used for defining "scopes" when correlating.
-
-\subsubsection{action}
-The action to take when the rule "hits".
-
-\subsubsection{continue}
-
-\subsubsection{context}
-
+This is not an extensive listing of the features in the \acrshort{sec} rule language, but covers what is needed for the rest of the thesis. For a deeper dive into \acrshort{sec} rules with more examples, the reader is referred to the paper \citetitle{rouillard2004real} by \textcite{rouillard2004real} and the \acrshort{sec} man-pages \cite{secman}.
 
 \subsection{Sigma}
 \label{sub:sigma}
