@@ -73,14 +73,15 @@ Synthetic data is datasets that are generated and design with the intent to meas
 
 It is worth stressing that the synthetic datasets are used strictly for measuring the performance of the systems in a worst-case/best-case scenario, and the dataset is in itself not representative of a real world scenario.
 
+\textbf{Baseline dataset}\\
+This dataset is a dataset with events that are all benign. This dataset is useful for measuring the speed at which the tools process and analyse the events, without triggering any rules.
+
 \textbf{High signal, low noise dataset}\\
 If we want to test the maximum event correlation throughput possible, we want to use a dataset that is designed to continuously trigger one or more rules. Given that we want to trigger a rule like the one defined in \cref{sigma-example-rule}, a high signal, low noise dataset could be designed to repeat the same 3 log lines that are enough to trigger the rule. 
 
 \textbf{Low signal, high noise dataset}\\
-This is the opposite of the high signal, low noise dataset which contained the necessary log lines to repeatedly trigger a specific rule. This dataset only contains the necessary events to trigger a single rule once, the rest of the events are simply background noise.
+This is the opposite of the high signal, low noise dataset which contained the necessary log lines to repeatedly trigger a specific rule. This dataset only contains the necessary events to trigger a single rule once, the rest of the events are simply background noise. This is pretty similar to the baseline dataset.
 
-\textbf{Baseline dataset}\\
-This dataset is a dataset with events that are all benign. This dataset is useful for measuring the speed at which the tools process and analyse the events, without triggering any rules.
 
 \subsection{Datasets used in this thesis}
 \label{sec:datasets-used}
@@ -90,10 +91,9 @@ For the experiments conducted in this thesis, Multiple datasets have been chosen
 \begin{itemize}
     \item Mordor dataset (APT3, Scenario 1 and 2)
     \item High signal, low noise dataset
-    \item Low signal, high noise dataset
     \item Baseline dataset
 \end{itemize}
-We chose the Mordor dataset as it is sufficiently large enough, representative and up-to-date. Then we have chosen the synthetic datasets as they will be used for baselining, best and worst-case scenarios for performance measuring.
+We chose the Mordor dataset as it is sufficiently large enough, representative and up-to-date. Then we have chosen the baseline and high signal, low noise synthetic datasets as they will be used for baselining and giving us best and worst-case scenarios for performance measuring. We do not use the low signal, high noise dataset, as we consider that almost identical to the baseline dataset.
 
 \section{Improving real time event correlation for Windows Event Logs}
 \label{sec:improving-real-time-event-correlation-for-windows-event-logs}

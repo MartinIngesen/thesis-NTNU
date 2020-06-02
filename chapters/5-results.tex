@@ -3,6 +3,7 @@
 In this chapter we will present the results from our experiments. Further analysis will be conducted in \cref{chap:discussion}. We will denote our first implementation described in \cref{sec:implement-sec} with \textbf{MEC}, and the second implementation described in \cref{sec:implemented-new-rule-format} as \textbf{MEC2}.
 
 \section{Dataset analysis}
+\label{sec:dataset-analysiss}
 
 As discussed in \cref{sec:dataset-experiments}, we wanted to analyze the datasets to get an impression on if the frequency of events are relatively stable, or of there are peaks in the dataset.
 In total there are \textbf{8} users and \textbf{5} hosts present in the dataset spanning both subsets.
@@ -140,56 +141,17 @@ In \cref{fig:10-sec-day-2} what immediately sticks out is the huge outlier where
 \label{fig:high-signal-low-noise}
 \end{figure}
 
+\subsubsection{Single core}
 
-\begin{figure}[ht]
-\centering
-\begin{tikzpicture}
-\begin{axis}[
-    xtick=data,
-	height=250pt,
-	ylabel=Events per second,
-	enlargelimits=0.15,
-	legend style={at={(0.5,-0.15)},
-	anchor=north,legend columns=-1},
-	ybar,
-	bar width=12pt,
-	symbolic x coords={1 000, 10 000, 100 000, 1 000 000},
-	nodes near coords,
-	nodes near coords style={above}
-]
-\addplot coordinates {(1 000,2564) (10 000,2801) (100 000,2826) (1 000 000,3058)}; % SEC baseline
-\addplot coordinates {(1 000,4762) (10 000,6250) (100 000,6738) (1 000 000,6278)}; % SEC high signal low noise
+When comparing against \acrshort{sec} it makes sense to only use one thread for execution. As can be seen from \cref{fig:baseline-perf}, MEC clearly outperforms \acrshort{sec} using both 1 and 10 workers. As can be seen from the figure, running MEC with 10 workers are not worth it. This is because of the additional overhead required by the Go runtime to control the goroutines, and any locking that might occur between the goroutines against the context.
 
-\addplot coordinates {(1 000,4860) (10 000,6603) (100 000,6427) (1 000 000,6150)}; % MEC1W baseline
-\addplot coordinates {(1 000,6675) (10 000,8387) (100 000,8273) (1 000 000,7565)}; % MEC1W high signal low noise
+If we compare the baseline plot \cref{fig:baseline-perf} against the high signal, low noise dataset in \cref{fig:high-signal-low-noise}, we can clearly a speed improvement going from the baseline dataset, and over to the high signal, low noise dataset. The reason for this lies in the implementation of SEC and MEC. If we are able to match a rule quickly, we do not have to check all the other rules for a match, which when it adds up, saves some time and improves the overall throughput.
 
-\addplot coordinates {(1 000,1912) (10 000,5542) (100 000,5880) (1 000 000,6189)}; % MEC10W baseline
-\addplot coordinates {(1 000,2292) (10 000,6434) (100 000,7625) (1 000 000,7602)}; % MEC10W high signal low noise
-
-\legend{SEC b, SEC hsln, MEC 1 worker b, MEC 1 worker hsln, MEC 10 workers b, MEC 10 workers hsln}
-\end{axis}
-\end{tikzpicture}
-\caption{Comparing baseline (b) and High signal low noise (hsln) dataset}
-\label{fig:comparing-perf}
-\end{figure}
-
-We want to see if our Go implementation can out-perform SEC when handling a high signal, low noise dataset.
-
-When comparing against \acrshort{sec} it makes sense to only use one thread for execution. As can be seen from \cref{fig:baseline-perf}, MEC clearly outperforms \acrshort{sec}. using multiple workers in a s
-
-The Figures \cref{fig:high-signal-low-noise}, \cref{fig:baseline-perf} and \cref{fig:comparing-perf} shows the results for that:
-\\
-These tests are run with 1 logical core on a "Intel(R) Core(TM) i7-7600U CPU @ 2.80GHz" (2 cores x 2 threads per core = max 4 logical cores) and 24GB RAM.\\
-\textbf{What can we say about the performance difference between the two datasets?}\\
-It's because of the implementation in SEC and MEC, if we match a rule quickly, we don't have to check all the other rules for a match, and this saves time.\\
-\textbf{Why is the MEC10W slower in the start?}\\
-Since MEC10W launches ten workers using Go routines, the additional overhead involved with that process is slowing down the performance if you compare it with "single-worker"-style implementations like SEC or MEC with 1 worker.\\
-\textbf{Why are the runs on the 1 000 dataset generally lower?}
-Because of the small dataset used (1 000), the time spent on general initialization is spread across a lot fewer events, which decreases the events/second throughput.
+A additional note is that when running both SEC and MEC against the dataset only containing 1000 events, the event throughput is generally lower. The reason for this is because of the small dataset used (1 000) which means that the time spent on general initialization is spread across a lot fewer events, which decreases the events/second throughput.
 
 \subsubsection{Multiple cores}
 
-By using all CPU cores available (4) instead of a single one, we can take better advantage of Gos concurrency model, and raise the throughput when using multiple workers and CPUs as seen in Figure \cref{fig:multicore-hsln-perf} and \cref{fig:multicore-b-perf}.\\
+By using all the CPU cores available (4) instead of a single one, we can take better advantage of Gos concurrency model, and raise the throughput when using multiple workers and CPUs as seen in Figure \cref{fig:multicore-hsln-perf} and \cref{fig:multicore-b-perf}.\\
 \textbf{What can we say about 1CPU,10W "catching up" to the others around 100 000 events?}\\
 This is pretty much the same as what we saw in the single core test.\n{ref her}. The time used to spin up the 10 workers (Go routines) is only outweighed at approximately 100 000 events. This is also why we are seeing a dip when using a dataset of 1 000 events.\\
 \textbf{Why are the results of 1CPU,1W, 1CPU,10W and 10CPU,1W generally the same?}\\
@@ -254,7 +216,7 @@ This is because they in general are the same. When we are limiting our script to
 \end{figure}
 
 \section{Implemented a new rule format}
-\subsection{Results}
+
 We are interested in seeing if there are any performance benefits from running our new rule implementation versus the re-implementation of the SEC rules. In the following graph we are running with only a single rule, using our high signal, low noise dataset. The bars labeled "SEC" are our re-implementation of the regular expression-based rules. "Original SEC" is Simple Event Correlator. "MEC" is our implementation with the new rule format.
 
 \includegraphics[scale=0.525]{figures/new-rule-format/performance.png}
@@ -273,7 +235,7 @@ What is interesting here is the little difference between (1W, 1CPU), (10W, 1CPU
 
 \subsubsection{Low signal, high noise dataset}
 \todo{This experiment requires a bit more care. We should discuss context locking method, rules used and why we chose this dataset.}
-
+\todo{Take this and rewrite it to use the baseline instead of lshn}
 
 What happens when we have a low signal, high noise dataset? We can see the result in Figure \cref{fig:comparing-lshn-hsln}. The following experiment explores that. Our hypothesis is that with a dataset where a single rule is triggered only once, we will see a drastic improvement over our high signal, low noise dataset. The reasoning behind this, is that if the events processed do not trigger any of our rules, we can process events much quicker. In addition, if the event does not trigger our rule, the context engine will not come in to play, and we will not have to do any sorts of locking.
 

@@ -1,21 +1,27 @@
 \chapter{Discussion}
 \label{chap:discussion}
-This chapter provides a discussion of what implications the results of the experiments has, and presents different aspects of the work conducted.\n{rephrase}
 
+In this chapter, we will discuss the results of our experiments, and how they line up with our research questions posed in \cref{chap:introduction}. We will also outline any future work.
+This chapter provides a discussion of what implications the results of the experiments has, and presents different aspects of the work conducted.
+
+
+The first question regarding the state of the art in event correlation has been addressed in Chapter \cref{chap:background} where we have highlighted relevant studies and options for doing event correlation. We highlighted several different methods for doing event correlation.
+
+% How can we improve the way real time event correlation is done for Windows Event Logs
+We have considered multiple ways that we can improve 
+
+We reimplemented what we considered the most important parts of \acrshort{SEC} in Go, taking advantage of Go being a compiled program. As seen in \n{REF}, this showed a great increase in the event throughput of the system. As discussed, we added concurrency and threading, which allowed us to utilize the full capacity of the processor. As seen in  \n{REF}, this lead to a even greater event throghput.
+
+We also implemented a new way to pre-handle event logs when ingesting. We called this tokenizing,  \n{REF} and along with using Sigma \n{REF} as a new rule format, we were able to increase the throughput even further, as seen by  \n{REF}.
+
+As outlined in experiments  \n{REF}, we identified two different ways to do context locking, and showed that for larger datasets, using the rule-based context mutex gave some increase in the event throughput  \n{REF}.
+
+This shows that we were not only able to improve the way real time event correlation is done for Windows Event Logs, but also show that our improvements give significant performance benefits.
+
+First of all we will extrapolate some numbers from the Mordor datasets. As discussed in \cref{sec:dataset-analysiss}, the second scenario had an average events per 10 seconds of 678. This gives us 67.8 events per second. If we consider that the dataset contained 8 users and 5 hosts, we can try to make some assumptions regarding real world environments. If we consider an environment with 100 hosts, that would give us a ballpark estimation of 1356 events per second. If we consider an environment with 500 hosts, that brings our estimation to 6780 events per second. This is not taking into account any peaks in the data. If we consider the highest peak in the first scenario, as seen in \cref{fig:10-sec-day-1}. Given a network size of 500 hosts, that would give us a peak at about 22 800 events per second. Now, that is probably unrealistic, as not all the hosts in the network would peak at the same time, producing massive amount of logs.
 
 \iffalse
-graph the dataset and look at peaks.
-Then multiply by potential hosts in enterprise.
-Then look at, are we able to handle that amount of events?
 What if we use more rules?
-
-
-\textbf{Research questions:}
-\begin{enumerate}
-    \item What is the state of the art for real time event correlation?
-    \item How can we improve the way real time event correlation is done for Windows Event Logs? %How can multi-threaded programming language and netter rule formats improve how real time event...
-    \item What is the performance of our proposed method, and how does it compare to other methods?
-\end{enumerate}
 
 \fi
 
@@ -32,25 +38,6 @@ Recommendations: what practical actions or scientific studies should follow?
 The research presented in this thesis aims at improving real time event correlation...
 
 
-The first question regarding the state of the art in event correlation has been addressed in Chapter \cref{chap:background} where we have highlighted relevant studies and options for doing event correlation. We highlighted several different methods for doing event correlation.
-
-One of the main drawback discovered in the research highlihted, that the various methods all lack the notion of time. This means that most of the methods assume that the events happen at a single point in time when the correlation is executed.
-
-The second question 
-
-% Main results
-
-% Research questions
-
-% Theoretical considerations
-
-% Practical implications
-
-
-\section{Main results}
-
-This thesis proposed a method for improving the area of real time rule-based event correlation by..
-
 The experiments conducted in this thesis evaluated a subset of possible features that might improve the performance of real time event correlation.
 We chose to compare our solution against \acrshort{sec}, as that seems to be the most popular open-source software for rule-based event correlation and used in a wide variety of sectors. 
 
@@ -62,40 +49,26 @@ We implemented functionality to take full advantage of the system hardware by us
 
 Lastly we implemented some changes to our solution that would depend less on regular expressions. To do this, we did two major changes: First we rewrote parts of the ingestion to tokenize each log entry, then we rewrote the rule parser to use Sigma rules instead. The benefits of this was clear, as we saw an even bigger performance boost..\n{Add some numbers here pls}
 
-
-\iffalse
-high signal low noise
-1000 = 40.17%
-10 000 = 34.19%
-100 000 = 22.78%
-1 000 000 = 20.5%
-
-baseline
-1000 = 89.5%
-10 000 = 135.7%
-100 000 = 127%
-1 000 000 = 101.1%
-\fi
-
 \begin{itemize}
     \item We were able to beat SEC in performance by implementing it using a compiled language and utilizing threading
     \item We were further able to enhance the speed by utilizing tokenization of the logs and using different rules
 \end{itemize}
 
-
-
-
 \section{Limitations of the study}
 \label{sec:limitations}
+We did not implement a one-to-one copy of \acrshort{sec} as we did not consider that to be of importance. We chose those features that we considered valuable. In addition, we did not create full feature parity with Sigma, only the parts necessary.
 
 \section{Future work}
 \label{sec:futurework}
+
 
 \begin{itemize}
     \item Modularity
     \item Broader log support
     \item Distributed/scaling
 \end{itemize}
+
+We consider broader log support to be fairly simple to implement in the future. In addition, we focused on Sysmon as a subset of Windows Event logs, and expanding the ability to ingest regular Windows Event log is already done, but was not considered relevant as part of this thesis.
 
 Distributed scaling: What could it tell us? Even more performance, harder to implement. Shared context is very tricky.
 
