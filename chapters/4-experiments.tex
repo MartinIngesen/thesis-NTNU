@@ -2,17 +2,6 @@
 \label{chap:experiments}
 The following chapter introduce our improved implementation based on the methodology presented in \cref{chap:methodology}. The software and hardware specifications are listed, the dataset collection and required preprocessing is presented, and we introduce our solution in two step, first a solution that uses the same rule format as \acrshort{sec}, and then a improved version that implements Sigma \cite{Sigma} and a better way for internally representing events as discussed in \cref{sub:internal-rep-of-logs}.
 
-\iffalse
-graph the dataset and look at peaks.
-Then multiply by potential hosts in enterprise.
-Then look at, are we able to handle that amount of events?
-What if we use more rules?
-
-
-The following chapter introduces the actual implementation of the experiment based on the methodology presented in Chapter 4. The collection of the data set, the software versions, the hardware
-specifications and the used algorithms during the experiment are presented as well as the experimental design and the technical implementation. It demonstrates the technical execution of the
-methodology for reproducibility of the use case.
-\fi
 
 \section{Hardware and Software Specifications}
 \label{sec:hardwaresoftwarespecs}
@@ -27,58 +16,45 @@ The software versions of interest are:
 \end{itemize}
 
 \section{Dataset preprocessing and analysis}
+\label{sec:dataset-experiments}
 
-In total, the two subsets contain 223 563 log lines in JSON format. 116 572 of these are of the type "Microsoft-Windows-Sysmon" which will be the main focus of our experiments.
+In total, the two subsets contain 223 563 log lines in \acrshort{json} format. 116 572 of these are of the type "Microsoft-Windows-Sysmon" which will be the main focus of our experiments.
 As previously explained in \cref{sec:SEC}, \acrshort{sec} is created to work with logs that contain one event per line in syslog format. For us to be able to use the Mordor dataset in \acrshort{sec}, we had to convert the \acrshort{json} logs into a syslog-friendly format. We converted the Mordor APT3 datasets by extracting the hostname and the raw Windows Event message which was still intact in the \acrshort{json} events. The script used can be found in \cref{appendix:sysmon-to-syslog-python-script}. 
 
-It was interesting to us to graph the dataset, as a way to identify if the frequency of events are relatively stable, or of there are peaks in the dataset. Using the script found in \cref{appendix:extract-events-in-10s-intervals} we calculated how many events occurred in every 10 second interval in the dataset. This is valuable as it will tell us what the peak number of events might be, and will guide us in understanding if we are reaching our goal of real time event correlation.
+It was interesting to us to graph the dataset, as a way to identify if the frequency of events are relatively stable, or of there are peaks in the dataset. Using the script found in \cref{appendix:extract-events-in-10s-intervals} we calculated how many events occurred in every 10 second interval in the dataset. This is valuable as it will tell us what the peak number of events might be, and will guide us in understanding if we are reaching our goal of real time event correlation. We chose 10 seconds because our example rule (as seen in \cref{sec-example-rule}) uses this number as its time window.
 In addition, we wanted to look at the number of computers and users in the dataset. This is valuable as it will give us an idea of how large the environment is. We did this using the scripts in \cref{appendix:extract-computers-from-dataset} and \cref{appendix:extract-users-from-dataset} respectively.
 
 \section{Implementation that uses SECs own regex-based rule format}
-
+\label{sec:implement-sec}
 \subsection{Choosing a compiled language}
 
-As explained in \cref{sub:use-compiled-language}, there are several benefits when using a compiled language in terms of performance gains.
+As explained in \cref{sub:use-compiled-language}, there are several benefits when using a compiled language in terms of performance gains. We landed on Go as our language for implementing our new solution.
 
-Go \cite{golang} is cross-platform, supports garbage collection, is strongly and statically typed
+Go \cite{golang} is cross-platform, supports garbage collection, strongly and statically typed. 
 In addition, Go features powerful built-in profiling tools and race-condition detection that can help development. This is especially valuable as we know we want to implement concurrency, and detecting and fixing any race-condition issues is of great importance.
-Go makes building concurrent programs easy by providing features such as Go routines for spawning new threads, and channels for communicating between the threads.
-
-
-\iffalse
-\section{The Go programming language}
-
+Go makes building concurrent programs easy by providing features such as goroutines for spawning new threads, and channels for communicating between the threads.
 This will not be an extensive intro to Go, the interested reader is referred to \textcite{golang} for further details.
 
-\com{Her er en rask intro, argumentasjonen hvorfor vi valgte dette finner du i eksperiment XYZ}
-\todo{Why did we choose Go?} \com{Dette er ikke teori/bakgrunn, men mer et metodevalg.}
-\subsection{Goroutines}
-\todo{What are these lightweight Go threads?}\\
-Goroutines are lightweight threads that are handled by the Go runtime.
-\subsection{Channels}
-The use of channels and goroutines gives us the ability to run in a threaded matter, utilizing multiple cores.
-\todo{What are channels? What are some of the considerations we have to take when working with them?}\\
-\todo{Are there any best practices?}\\
-Channels are the preferred way to communicate between Goroutines in Go.
+\subsubsection{Goroutines, channels and workers}
+Goroutines are not "real" threads. They are lightweight threads managed by the Go runtime, with a lower cost of creation than regular threads \cite{go-memory-model}.
+Channels are the preferred way to communicate between goroutines in Go, and are created to prevent any race conditions when multiple goroutines are reading and writing to the same channel. The use of channels and goroutines gives us the ability to run safely in a threaded matter, utilizing multiple cores. Since goroutines run in the same address space, any access to shared memory outside of channels has to be synchronized to avoid race conditions or data races.
 
-\subsection{Concurrency vs parallelism}
-\todo{Discuss why Go is concurrent, but not parallel}
-\fi
-
-
-Other than the fact that Go is a compiled language and Perl is a interpreted language, the main additions in our implementation is that our version:
-\begin{itemize}
-    \item Uses Go channels for re-injecting events into the context engine.
-    \item 
-\end{itemize}
-
-\subsubsection{Workers}
-
+Continuing forward in this thesis, we will use the term \textit{worker} for a goroutine that is created to handle events. By spawning multiple workers, we are able to handle a bigger workload and increase the event throughput of our implementation.
 
 \subsection{Implementation}
 When considering which features we wanted to implement from \acrshort{sec}, we chose to implement the features that we saw the best value in. We chose to only implement the \textit{Single} and \textit{SingleWithTreshold} type, and the \textit{RegExp} pattern type. These are the features required to implement the rule found in \cref{sec-example-rule}, and also some of the most popular features observed from the \acrshort{sec} rule repository \cite{sec-rulesets}.
 
-Furthermore, we implemented threading by using Go routines and channels. The architecture can be seen from the \cref{fig:reimplementation-architecture}. While it might seem complex, in reality it is pretty simple. Each block is a separate Go routine running in a lightweight thread. \lstinline{getEvents()} reads events from input, and sends each event on a channel named \lstinline{eventChannel}. The \lstinline{handleEvent()} Go routines (named workers in our implementation), listens to this channel and when a new event arrives, picks it off the channel and starts processing it. As can be seen from \cref{fig:reimplementation-architecture}, the workers are sharing context, that they will lock on if any rules are matching and they need to do some correlation. If a rule matches and issues a \textit{event} action (as shown in \cref{sec-example-rule}), the worker will push the event action on to a new channel that is being listened to by \lstinline{reinjectEvents()}. \lstinline{reinjectEvents()} is a Go routine with the sole purpose to collect events from multiple workers and forward them on a single channel, reinjecting into \lstinline{eventChannel}. This makes the new events available to the the workers, so that they can process the new events. If any of the \lstinline{handleEvent()} workers completes a correlation according to the rule, and the rule issues a \textit{write} action, the action is written to output.
+Furthermore, we implemented threading by using goroutines and channels. The architecture can be seen from the \cref{fig:reimplementation-architecture}. While it might seem complex, in reality it is pretty simple. Each block is a separate Go routine running in a lightweight thread. \lstinline{getEvents()} reads events from input, and sends each event on a channel named \lstinline{eventChannel}. The \lstinline{handleEvent()} goroutines (named workers in our implementation), listens to this channel and when a new event arrives, picks it off the channel and starts processing it. As can be seen from \cref{fig:reimplementation-architecture}, the workers are sharing context, that they will lock on if any rules are matching and they need to do some correlation. If a rule matches and issues a \textit{event} action (as shown in \cref{sec-example-rule}), the worker will push the event action on to a new channel that is being listened to by \lstinline{reinjectEvents()}. \lstinline{reinjectEvents()} is a Go routine with the sole purpose to collect events from multiple workers and forward them on a single channel, reinjecting into \lstinline{eventChannel}. This makes the new events available to the the workers, so that they can process the new events. If any of the \lstinline{handleEvent()} workers completes a correlation according to the rule, and the rule issues a \textit{write} action, the action is written to output.
+
+When we want to do correlation between two or more events based on a rule, we need to have some kind of overview of what state our rule is in. In \cref{fig:reimplementation-architecture} we denote this as \textit{context}. When a new event arrives that triggers our rule, we need to know if this is the first event, if there are other events that have triggered before it, and most importantly, if the previous events that triggered the rule is within the given time frame of the rule.
+
+One of the benefits of our new implementation is the ability to process events concurrently. But when working with a context that is accessed by several workers concurrently, data races may appear. A data race occurs when two goroutines concurrently accesses the same variable (in this case the context variable), and at least one of the goroutines writes to the variable. The danger here is that we could have two or more goroutines with their own versions of the context that are out of sync. This could lead to data loss and/or a failure to detect when a rule-condition is met. The standard way of dealing with data races like this is to use a mutex. A mutex provides a locking mechanism to ensure that only one goroutine can manipulate a variable at a time.
+
+In our implementation we integrated a mutex in two different ways, using a shared context mutex and using a rule-based context mutex. This gave us a goroutine-safe way of accessing and editing our context. The only real drawback of this is when multiple goroutines try to access the context, they will have to wait for their turn to lock on the context. Regardless, this is a necessary measure to prevent data races.
+
+The shared context mutex is shared across all goroutines, and offers a single point to lock on. The rule-based context mutex offers one mutex per rule. It is safe to use this as a lock, since a worker only will we working with one rule context at a time. If several goroutines are accessing the context at the same time, but are interested in different rules, we will lock on the individual rule mutex instead of a single shared mutex.
+
+There may still be cases when multiple goroutines try to lock on the same rule and have to wait in line. So depending on the number of rules and how often the rules are triggered we may see performance equal to the shared context as a worst case scenario.
 
 \begin{figure}[htbp]
 \centering
@@ -124,24 +100,25 @@ libraryy/.style={rectangle, rounded corners, minimum width=3cm, minimum height=1
 
 
 \section{Implemented a new rule format}
-This format relies less on the extensive use of Regexes \com{Hvorfor er dette en fordel? Hvorfor er dette valget smart? Beskriv dette i experiment delen?}, as we saw in the rules used by Simple Event Correlator. \todo{Elaborate on this}
-\\
-For each log line/event we:
+\label{sec:implemented-new-rule-format}
 
-\begin{enumerate}
-    \item Tokenize the event into a Event struct. \com{Hva er dette?... Flytt beskrivelsen opp til Experiment i stedet?}
-    \item Iterate over every rule, checking if the Event matches the detection-part of the rule.
-    \begin{itemize}
-        \item If there is a match, we run the Event through the context engine, to see if the conditions are met for the rule.
-    \end{itemize}
-\end{enumerate}
+As stated, we wanted to create another version that implements Sigma \cite{Sigma} and a better way for internally representing events as discussed in \cref{sub:internal-rep-of-logs}.
 
-When we tokenize the event, we take a single line of log/event, and split it into its key-value representation. For instance, the following event log is a single line of text:
-\begin{lstlisting}[breaklines=true]
+As discussed in \cref{sub:internal-rep-of-logs}, \acrshort{sec} and our implementation in \cref{sec:implement-sec}, when tested the different rules against a log line, the pattern of the rule is applied against the whole log line. In \cref{sub:internal-rep-of-logs} we proposed that tokenizing the log before testing each rule could improve the performance. When we tokenize the event log, we take a single line of log/event, and split it into its key-value representation. For instance, the event log found in \cref{example-syslog-event} is a huge single line of text. Both writing rules for, and using regular expressions, on such a large log line seems inefficient.
+\begin{lstlisting}[
+    caption={Example syslog event},
+    label=example-syslog-event,
+    breaklines=true
+    language=Perl]
 <14>Feb 18 02:29:49 Client02.mrtn.lab Microsoft-Windows-Sysmon[2092]: Process Create:  RuleName:   UtcTime: 2020-02-18 10:29:49.839  ProcessGuid: {dadb16ad-bc9d-5e4b-0000-0010c8fd3600}  ProcessId: 1040  Image: C:\Windows\System32\whoami.exe  FileVersion: 10.0.17763.1 (WinBuild.160101.0800)  Description: whoami - displays logged on user information  Product: Microsoft Windows Operating System  Company: Microsoft Corporation  OriginalFileName: whoami.exe  CommandLine: whoami  CurrentDirectory: C:\Users\mrtn\  User: MRTNLAB\mrtn  LogonGuid: {dadb16ad-2c2d-5e17-0000-0020fc3c1b00}  LogonId: 0x1B3CFC  TerminalSessionId: 1  IntegrityLevel: Medium  Hashes: MD5=43C2D3293AD939241DF61B3630A9D3B6,SHA256=1D5491E3C468EE4B4EF6EDFF4BBC7D06EE83180F6F0B1576763EA2EFE049493A,IMPHASH=7FF0758B766F747CE57DFAC70743FB88  ParentProcessGuid: {dadb16ad-2cf1-5e17-0000-001027122b00}  ParentProcessId: 2748  ParentImage: C:\Users\mrtn\test.exe  ParentCommandLine: .\test.exe
 \end{lstlisting}
-But after tokenization, it looks like this:
-\begin{lstlisting}[breaklines=true]
+
+If we tokenize the event before processing, we turn the event found in \cref{example-syslog-event} into something like what we have in \cref{example-tokenized-event}.
+\begin{lstlisting}[
+    caption={Example tokenized event},
+    label=example-tokenized-event,
+    breaklines=true
+    language=Perl]
 MachineName: Client02.mrtn.lab
 ProcessType: Process Create: 
 RuleName:   
@@ -166,82 +143,48 @@ ParentProcessId: 2748
 ParentImage: C:\Users\mrtn\test.exe
 ParentCommandLine: .\test.exe
 \end{lstlisting}
-The tokenized version of the event log is stored as a Go struct, which makes it simpler to query specific parts of the event log directly, instead of having to parse the whole event log every time we want to access a single key-value pair. An example would be if we wanted to access the MachineName or CommandLine values from the above example, which would be done like this:  \lstinline{event['MachineName']} and \lstinline{event['CommandLine']}.
+The tokenized version of the event log is stored as a struct, which makes it simpler to query specific parts of the event log directly, instead of having to parse the whole event log every time we want to access a single key-value pair. An example would be if we wanted to access the MachineName or CommandLine values from the above example, which would be done like this:  \lstinline{event['MachineName']} and \lstinline{event['CommandLine']}.
 
+Implementing Sigma was achieved by replacing the rule parser that previously parsed \acrshort{sec} rules, and use a \acrshort{yaml} library instead. Most of the work required to make these \acrshort{yaml} function was spent on implementing the \textit{condition} block from the Sigma specification \cite{SigmaSpecification}.
+One benefit with the new format, is that since the \textit{selection} block-items are \textit{AND}ed together, we are able to much quicker decide if a rule is applicable for a event, without having to iterate over every single condition in the rule.
 
-\subsection{Context}
-\n{What is context?}
-\\
-When we want to do correlation between two or more events based on a rule, we need to have some kind of overview of what state our rule is in. When a new event arrives that triggers our rule, we need to know if this is the first event, if there are other events that have triggered before it, and most importantly, if the previous events that triggered the rule is within the given time frame of the rule. This is what we call "context".
+The end architecture is less complex when compared to the one presented in \cref{sec:implement-sec}. A figure representing the architecture for this iteration can be seen in \cref{fig:second-implementation-architecture}.
 
-\subsection{The Context Engine}
-One of the benefits of our new implementation is the ability to process events concurrently. But when working with a context that is accessed by several workers concurrently, data races may appear. A data race occurs when two goroutines concurrently accesses the same variable (in this case the context variable), and at least one of the goroutines writes to the variable. The danger here is that we could have two or more goroutines with their own versions of the context that are out of sync. This could lead to data loss and/or a failure to detect when a rule-condition is met. The standard way of dealing with data races like this is to use a mutex. A mutex provides a locking mechanism to ensure that only one goroutine can manipulate a variable at a time.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[->,
+>=stealth',
+shorten >=1pt,
+thick,
+node distance=2.25cm and 0.75cm, % y and x
+stepp/.style={rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=orange!30},
+libraryy/.style={rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=green!30},
+]
+  \node (events) [] {events.txt};
+  \node (getEvents) [stepp, right= of events] {getEvents()};
+  \node (context) [libraryy, right= of getEvents] {context};
+  \node (handleEvent1) [stepp, above of=context] {handleEvent()};
+  \node (handleEvent2) [stepp, below of=context] {handleEvent()};
+  \node (output) [right= of context] {Output};
+  \node[draw=red,dotted,fit=(handleEvent1) (handleEvent2), label={above:{Workers}}] {};
+  
+  \path[every node/.style={font=\sffamily\small}]
+    (events)
+        edge[bend left] node {} (getEvents)
+    (getEvents)
+        edge[bend left] node {} (events)
+        edge[bend left] node {} (handleEvent1)
+        edge[bend right] node {} (handleEvent2)
+    (handleEvent1)
+        edge node {} (context)
+        edge[bend left] node {} (output)
+    (handleEvent2)
+        edge node {} (context)
+        edge[bend right] node {} (output)
+    ;
+\end{tikzpicture}
+\caption{Second implementation in Go}
+\label{fig:second-implementation-architecture}
+\end{figure}
 
-In our implementation we have integrated a mutex in two different ways, using a shared context mutex and using a rule-based context mutex. \com{Det er ikke så interessant at vi har brukt to forskjellige, men hva oppnår vi? Hva var hensikten med dette?}
-
-\subsubsection{Shared context}
-
-For the shared context, we have a large map that looks like this:
-\begin{lstlisting}
-context := map[string]{
-    Events  []Event
-}
-\end{lstlisting}
-We access it by doing:
-\begin{lstlisting}
-c := context["CONTEXT_FOR_RULE_1"]
-\end{lstlisting}
-the variable \lstinline{c} now contain an array of \lstinline{event}s, if there are any for the given key \lstinline{CONTEXT_FOR_RULE_1}. In our implementation we use the ID of the rule for this lookup, as it is an (Universally unique identifier) UUID4-string, and is safe to use as a unique identifier.
-
-
-Since we may both read and write to the \lstinline{c} variable, we need to lock a mutex for the \lstinline{context} map. We can do this like this:
-
-\begin{lstlisting}
-context := map[string]{
-    Events  []Event
-}
-contextMutex := &sync.RWMutex{}
-
-contextMutex.Lock()
-c := context["CONTEXT_FOR_RULE_1"]
-
-// Add or remove events to the context here
-
-context["CONTEXT_FOR_RULE_1"] = c
-
-contextMutex.Unlock()
-\end{lstlisting}
-
-We now have a goroutine-safe way of accessing and editing our context. The drawback of this is in the design, when multiple goroutines try to access the context, they will have to wait for their turn to lock on the context.
-
-\subsubsection{Rule-based context}
-For the rule-based context, both the context and the context mutex is defined in the rule struct itself:
-\begin{lstlisting}
-type context struct {
-    events []event
-}
-
-type Rule struct {
-	Context        context
-	ContextMutex   sync.RWMutex
-	Title          string
-	ID             string
-	...
-}
-\end{lstlisting}
-Accessing and modifying the rule context is pretty similar to the shared context mutex, but instead of the shared context, we are accessing \lstinline{rule} instead:
-\begin{lstlisting}
-rule.ContextMutex.Lock()
-c := rule.Context
-
-// Add or remove events to the context here
-
-rule.Context = c
-
-rule.ContextMutex.Unlock()
-\end{lstlisting}
-
-
-The benefit to doing it this way is clear. If several goroutines are accessing the context at the same time, but are interested in different rules, we will lock on the individual rule mutex instead of a single shared mutex.
-
-There may still be cases when multiple goroutines try to lock on the same rule and have to wait in line. So depending on the number of rules and how often the rules are triggered we may see performance equal to the shared context as a worst case scenario.
+All implemented code will be available from the authors GitHub \cite{martin_github}.

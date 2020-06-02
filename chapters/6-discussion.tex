@@ -2,6 +2,23 @@
 \label{chap:discussion}
 This chapter provides a discussion of what implications the results of the experiments has, and presents different aspects of the work conducted.\n{rephrase}
 
+
+\iffalse
+graph the dataset and look at peaks.
+Then multiply by potential hosts in enterprise.
+Then look at, are we able to handle that amount of events?
+What if we use more rules?
+
+
+\textbf{Research questions:}
+\begin{enumerate}
+    \item What is the state of the art for real time event correlation?
+    \item How can we improve the way real time event correlation is done for Windows Event Logs? %How can multi-threaded programming language and netter rule formats improve how real time event...
+    \item What is the performance of our proposed method, and how does it compare to other methods?
+\end{enumerate}
+
+\fi
+
 \iffalse
 Interpretations: what do the results mean?
 Implications: why do the results matter?
@@ -9,14 +26,35 @@ Limitations: what can’t the results tell us?
 Recommendations: what practical actions or scientific studies should follow?
 \fi
 
+
+\section{Research questions}
+...\\
+The research presented in this thesis aims at improving real time event correlation...
+
+
+The first question regarding the state of the art in event correlation has been addressed in Chapter \cref{chap:background} where we have highlighted relevant studies and options for doing event correlation. We highlighted several different methods for doing event correlation.
+
+One of the main drawback discovered in the research highlihted, that the various methods all lack the notion of time. This means that most of the methods assume that the events happen at a single point in time when the correlation is executed.
+
+The second question 
+
+% Main results
+
+% Research questions
+
+% Theoretical considerations
+
+% Practical implications
+
+
 \section{Main results}
 
 This thesis proposed a method for improving the area of real time rule-based event correlation by..
 
 The experiments conducted in this thesis evaluated a subset of possible features that might improve the performance of real time event correlation.
-We chose to compare our solution against SEC, as that seems to be the most popular open-source software for rule-based event correlation and used in a wide variety of sectors. 
+We chose to compare our solution against \acrshort{sec}, as that seems to be the most popular open-source software for rule-based event correlation and used in a wide variety of sectors. 
 
-First of all we implemented a new solution that used the same rulesets at SEC, but implemented in the compiled language Go. Running this using equal conditions like the same dataset, and only a single core, we were able to outperform SEC with 20-40\% using the high signal low noise dataset, and up to 89-135\% when comparing with the baseline dataset. This clearly shows the benefits of utilizing a compiled language when performance is an important criteria.
+First of all we implemented a new solution that used the same rulesets at \acrshort{sec}, but implemented it using the compiled language Go. Running this using equal conditions like the same dataset, and only a single core, we were able to outperform SEC with 20-40\% using the high signal low noise dataset, and up to 89-135\% when comparing with the baseline dataset. This clearly shows the benefits of utilizing a compiled language when performance is an important criteria.
 
 We implemented a better time management system that extracts the UTC timestamp from the log, and uses that for the time-based correlation as opposed to SEC which uses the time of when SEC reads the log line from input. The difference here does not play a role processing-wise, as the timestamps in the datasets are set to a single point in time, which replicates how SEC works in our new solution. In a real world scenario this would not be the case, and we consider our solution to be a better implementation than the one used in SEC.
 
@@ -44,25 +82,6 @@ baseline
     \item We were further able to enhance the speed by utilizing tokenization of the logs and using different rules
 \end{itemize}
 
-
-\section{Research questions}
-...\\
-The research presented in this thesis aims at improving real time event correlation...
-
-
-The first question regarding the state of the art in event correlation has been addressed in Chapter \cref{chap:background} where we have highlighted relevant studies and options for doing event correlation. We highlighted several different methods for doing event correlation.
-
-One of the main drawback discovered in the research highlihted, that the various methods all lack the notion of time. This means that most of the methods assume that the events happen at a single point in time when the correlation is executed.
-
-The second question 
-
-% Main results
-
-% Research questions
-
-% Theoretical considerations
-
-% Practical implications
 
 
 

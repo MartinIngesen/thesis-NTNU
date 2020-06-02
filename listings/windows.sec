@@ -1,0 +1,45 @@
+# whoami
+# $1 - hostname
+# $2 - executable
+# $3 - username
+type=Single
+ptype=RegExp
+pattern=<\d+>\S+\s+\d+\s\d\d:\d\d:\d\d\s(\S+).*Process Create.*OriginalFileName:\s+((?i)whoami.exe).*User: (\S+)
+desc=$0
+action=event CAR-2013-04-002_for_$3_on_$1
+
+# quser
+type=Single
+ptype=RegExp
+pattern=<\d+>\S+\s+\d+\s\d\d:\d\d:\d\d\s(\S+).*Process Create.*OriginalFileName:\s+((?i)quser.exe).*User: (\S+)
+desc=$0
+action=event CAR-2013-04-002_for_$3_on_$1
+
+# hostname
+type=Single
+ptype=RegExp
+pattern=<\d+>\S+\s+\d+\s\d\d:\d\d:\d\d\s(\S+).*Process Create.*OriginalFileName:\s+((?i)hostname.exe).*User: (\S+)
+desc=$0
+action=event CAR-2013-04-002_for_$3_on_$1
+
+# collector
+# $1 - username
+# $2 - hostname
+type=SingleWithThreshold
+ptype=RegExp
+pattern=CAR-2013-04-002_for_(\S+)_on_(\S+)
+desc=$0
+action=write - CAR-2013-04-002: Quick execution of a series of suspicious commands detected on host $2 from user $1
+window=10
+thresh=3
+
+#
+# SEC Performance Test Rule
+# Look for EOF at the end of the line, and send ourselves
+# a USR1 signal to dump statistics, and a TERM signal to 
+#end the program.
+type=Single
+ptype=RegExp
+pattern=EOF\s*$
+desc=$0
+action=eval %k ( $pid=$$$; kill(TERM, $pid));
